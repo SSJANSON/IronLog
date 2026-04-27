@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -26,7 +26,14 @@ export function Dashboard() {
 
   return (
     <div className="page">
-      <Header title="IronLog" />
+      <Header
+        title="IronLog"
+        right={
+          <Link to="/profile" className="profile-icon-btn" aria-label="Profile">
+            👤
+          </Link>
+        }
+      />
 
       {editingSession && (
         <SessionEditor

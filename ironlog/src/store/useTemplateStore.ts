@@ -1,72 +1,95 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { WorkoutTemplate, TemplateMovement } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface TemplateStore {
   templates: WorkoutTemplate[];
-  addTemplate: (name: string, movements: TemplateMovement[]) => void;
-  updateTemplate: (id: string, updates: Partial<Omit<WorkoutTemplate, 'id' | 'createdAt'>>) => void;
-  deleteTemplate: (id: string) => void;
+  loadUserTemplates: (userId: string) => Promise<void>;
+  clearTemplates: () => void;
+  addTemplate: (name: string, movements: TemplateMovement[]) => Promise<void>;
+  updateTemplate: (id: string, updates: Partial<Omit<WorkoutTemplate, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteTemplate: (id: string) => Promise<void>;
 }
 
-export const useTemplateStore = create<TemplateStore>()(
-  persist(
-    (set) => ({
-      templates: [],
+export const useTemplateStore = create<TemplateStore>()((set, get) => ({
+  templates: [],
 
-      addTemplate: (name, movements) =>
-        set((state) => ({
-          templates: [
-            ...state.templates,
-            {
-              id: crypto.randomUUID(),
-              name,
-              movements,
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        })),
+  loadUserTemplates: async (userId) => {
+    const { data, error } = await supabase
+      .from('templates')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
 
-      updateTemplate: (id, updates) =>
-        set((state) => ({
-          templates: state.templates.map((t) =>
-            t.id === id ? { ...t, ...updates } : t
-          ),
-        })),
+    if (error || !data) return;
 
-      deleteTemplate: (id) =>
-        set((state) => ({
-          templates: state.templates.filter((t) => t.id !== id),
-        })),
-    }),
-    {
-      name: 'ironlog-templates',
-      version: 1,
-      migrate: (persisted: unknown, version: number) => {
-        const state = persisted as { templates?: unknown[] };
-        if (version === 0 && Array.isArray(state.templates)) {
-          return {
-            ...state,
-            templates: state.templates.map((t: unknown) => {
-              const tmpl = t as Record<string, unknown>;
-              const movs = tmpl.movements as unknown[];
-              if (Array.isArray(movs) && movs.length > 0 && typeof movs[0] === 'string') {
-                return {
-                  ...tmpl,
-                  movements: (movs as string[]).map((m) => ({
-                    id: crypto.randomUUID(),
-                    name: m,
-                    targetSets: Number(tmpl.targetSets) || 3,
-                    targetReps: m === 'deadlift' ? 3 : 5,
-                  })),
-                };
-              }
-              return tmpl;
-            }),
-          };
-        }
-        return persisted;
-      },
-    }
-  )
-);
+    const templates: WorkoutTemplate[] = data.map((row) => ({
+      id: row.id,
+      name: row.name,
+      movements: row.movements ?? [],
+      createdAt: row.created_at,
+    }));
+
+    set({ templates });
+  },
+
+  clearTemplates: () => set({ templates: [] }),
+
+  addTemplate: async (name, movements) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Optimistic update — show immediately
+    const optimistic: WorkoutTemplate = {
+      id: crypto.randomUUID(),
+      name,
+      movements,
+      createdAt: new Date().toISOString(),
+    };
+    set((state) => ({ templates: [...state.templates, optimistic] }));
+
+    const { data, error } = await supabase
+      .from('templates')
+      .insert({ user_id: user.id, name, movements })
+      .select()
+      .single();
+
+    if (error) { console.error('addTemplate error:', error); return; }
+    if (!data) return;
+
+    // Replace optimistic entry with real Supabase record
+    set((state) => ({
+      templates: state.templates.map((t) =>
+        t.id === optimistic.id
+          ? { id: data.id, name: data.name, movements: data.movements, createdAt: data.created_at }
+          : t
+      ),
+    }));
+  },
+
+  updateTemplate: async (id, updates) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const payload: Record<string, unknown> = {};
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.movements !== undefined) payload.movements = updates.movements;
+
+    await supabase.from('templates').update(payload).eq('id', id).eq('user_id', user.id);
+
+    set((state) => ({
+      templates: state.templates.map((t) =>
+        t.id === id ? { ...t, ...updates } : t
+      ),
+    }));
+  },
+
+  deleteTemplate: async (id) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('templates').delete().eq('id', id).eq('user_id', user.id);
+
+    set((state) => ({ templates: state.templates.filter((t) => t.id !== id) }));
+  },
+}));

@@ -4,7 +4,9 @@ import { MovementCard } from './MovementCard';
 import { Button } from '../ui/Button';
 import { useWorkoutStore } from '../../store/useWorkoutStore';
 import { useTemplateStore } from '../../store/useTemplateStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { detectNewPRs } from '../../lib/prDetection';
+import { postSessionToFeed } from '../../lib/feedService';
 
 interface SetLoggerProps {
   session: WorkoutSession;
@@ -15,15 +17,22 @@ interface SetLoggerProps {
 export function SetLogger({ session, onDiscard }: SetLoggerProps) {
   const navigate = useNavigate();
   const completeSession = useWorkoutStore((s) => s.completeSession);
+  const saveSessionToSupabase = useWorkoutStore((s) => s.saveSessionToSupabase);
   const prs = useWorkoutStore((s) => s.prs);
   const sessions = useWorkoutStore((s) => s.sessions);
   const templates = useTemplateStore((s) => s.templates);
+  const user = useAuthStore((s) => s.user);
   const template = templates.find((t) => t.id === session.templateId);
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     const completed = completeSession();
     if (!completed) return;
     const newPRs = detectNewPRs(completed, prs);
+    // Save session first, then post to feed (feed_items has FK on sessions)
+    await saveSessionToSupabase(completed);
+    if (user) {
+      postSessionToFeed(user.id, completed, newPRs);
+    }
     navigate('/complete', { state: { session: completed, newPRs } });
   };
 

@@ -3,10 +3,12 @@ import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { useProfileStore } from '../store/useProfileStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { useState } from 'react';
 
 export function Profile() {
   const { profile, updateProfile } = useProfileStore();
+  const signOut = useAuthStore((s) => s.signOut);
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [username, setUsername] = useState(profile.username);
   const [saved, setSaved] = useState(false);
@@ -69,6 +71,9 @@ export function Profile() {
 
           <Button variant="primary" fullWidth onClick={handleSave}>
             {saved ? 'Saved!' : 'Save Changes'}
+          </Button>
+          <Button variant="ghost" fullWidth onClick={signOut}>
+            Log Out
           </Button>
         </Card>
       </div>
