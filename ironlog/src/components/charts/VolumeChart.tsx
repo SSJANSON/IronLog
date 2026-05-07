@@ -1,10 +1,11 @@
 import { Bar } from 'react-chartjs-2';
-import type { FilterRange, RepRange } from '../../types';
+import type { FilterRange, Movement, RepRange } from '../../types';
 import { baseChartOptions } from '../../lib/chartDefaults';
 import { useVolumeChartData } from '../../hooks/useChartData';
 import { FILTER_LABELS } from '../../lib/dateUtils';
 
 interface VolumeChartProps {
+  movement: Movement;
   filterRange: FilterRange;
   onFilterChange: (range: FilterRange) => void;
   repRange: RepRange;
@@ -14,23 +15,22 @@ interface VolumeChartProps {
 const FILTERS: FilterRange[] = ['4w', '3m', '6m', '1y', 'all'];
 const REP_RANGES: RepRange[] = ['all', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
-export function VolumeChart({ filterRange, onFilterChange, repRange, onRepRangeChange }: VolumeChartProps) {
-  const { labels, datasets } = useVolumeChartData(filterRange, repRange);
+export function VolumeChart({ movement, filterRange, onFilterChange, repRange, onRepRangeChange }: VolumeChartProps) {
+  const { labels, datasets } = useVolumeChartData(filterRange, repRange, movement);
 
   const options = {
     ...baseChartOptions,
     animation: { duration: 400 },
     scales: {
       ...baseChartOptions.scales,
-      x: { ...baseChartOptions.scales.x, stacked: true },
+      x: { ...baseChartOptions.scales.x },
       y: {
         ...baseChartOptions.scales.y,
-        stacked: true,
         title: {
           display: true,
-          text: 'Total Volume (kg)',
-          color: 'var(--color-text-secondary)',
-          font: { family: 'var(--font-sans)', size: 11 },
+          text: 'VOLUME (KG)',
+          color: '#444',
+          font: { family: 'Space Grotesk, system-ui, sans-serif', size: 10 },
         },
       },
     },
@@ -38,6 +38,9 @@ export function VolumeChart({ filterRange, onFilterChange, repRange, onRepRangeC
 
   return (
     <div className="chart-container">
+      <div className="chart-header-row">
+        <span className="chart-metric-label">WEEKLY VOLUME</span>
+      </div>
       <div className="chart-filters">
         {FILTERS.map((f) => (
           <button

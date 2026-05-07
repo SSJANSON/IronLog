@@ -90,7 +90,7 @@ export function SessionEditor({ session, onSave, onCancel }: SessionEditorProps)
     const updated: WorkoutSession = {
       ...session,
       templateName: name.trim() || session.templateName,
-      date: date ? new Date(date).toISOString() : session.date,
+      date: date ? (() => { const [y, m, d] = date.split('-').map(Number); return new Date(y, m - 1, d).toISOString(); })() : session.date,
       movements: movements.map((log) => ({
         movement: log.movement,
         sets: log.sets.map(toSet).filter((s) => s.weight > 0 && s.reps > 0),

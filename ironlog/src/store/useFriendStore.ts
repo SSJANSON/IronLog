@@ -51,6 +51,7 @@ export const useFriendStore = create<FriendStore>()((set, get) => ({
         username: profile?.username ?? '',
         displayName: profile?.display_name ?? '',
         status: row.status as 'pending' | 'accepted',
+        direction: isSender ? 'sent' : 'received',
         privacyPublic: true,
       };
     });

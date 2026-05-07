@@ -55,6 +55,7 @@ export interface Friend {
   displayName: string;
   avatarUrl?: string;
   status: 'pending' | 'accepted';
+  direction: 'sent' | 'received';
   privacyPublic: boolean;
 }
 

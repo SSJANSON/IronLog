@@ -114,7 +114,8 @@ export function Session() {
               value={sessionDateValue}
               onChange={(e) => {
                 if (e.target.value) {
-                  updateSessionDate(new Date(e.target.value).toISOString());
+                  const [y, m, d] = e.target.value.split('-').map(Number);
+                  updateSessionDate(new Date(y, m - 1, d).toISOString());
                 }
               }}
             />

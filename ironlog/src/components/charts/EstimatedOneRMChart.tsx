@@ -1,10 +1,11 @@
 import { Line } from 'react-chartjs-2';
-import type { FilterRange, RepRange } from '../../types';
+import type { FilterRange, Movement, RepRange } from '../../types';
 import { baseChartOptions } from '../../lib/chartDefaults';
 import { useE1RMChartData } from '../../hooks/useChartData';
 import { FILTER_LABELS } from '../../lib/dateUtils';
 
 interface EstimatedOneRMChartProps {
+  movement: Movement;
   filterRange: FilterRange;
   onFilterChange: (range: FilterRange) => void;
   repRange: RepRange;
@@ -14,8 +15,8 @@ interface EstimatedOneRMChartProps {
 const FILTERS: FilterRange[] = ['4w', '3m', '6m', '1y', 'all'];
 const REP_RANGES: RepRange[] = ['all', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
-export function EstimatedOneRMChart({ filterRange, onFilterChange, repRange, onRepRangeChange }: EstimatedOneRMChartProps) {
-  const { labels, datasets } = useE1RMChartData(filterRange, repRange);
+export function EstimatedOneRMChart({ movement, filterRange, onFilterChange, repRange, onRepRangeChange }: EstimatedOneRMChartProps) {
+  const { labels, datasets, prValue } = useE1RMChartData(filterRange, repRange, movement);
 
   const options = {
     ...baseChartOptions,
@@ -26,9 +27,9 @@ export function EstimatedOneRMChart({ filterRange, onFilterChange, repRange, onR
         ...baseChartOptions.scales.y,
         title: {
           display: true,
-          text: 'Estimated 1RM (kg)',
-          color: 'var(--color-text-secondary)',
-          font: { family: 'var(--font-sans)', size: 11 },
+          text: 'EST. 1RM (KG)',
+          color: '#444',
+          font: { family: 'Space Grotesk, system-ui, sans-serif', size: 10 },
         },
       },
     },
@@ -36,6 +37,12 @@ export function EstimatedOneRMChart({ filterRange, onFilterChange, repRange, onR
 
   return (
     <div className="chart-container">
+      <div className="chart-header-row">
+        <span className="chart-metric-label">EST. 1RM</span>
+        {prValue != null && (
+          <span className="chart-pr-badge">{prValue} KG PR</span>
+        )}
+      </div>
       <div className="chart-filters">
         {FILTERS.map((f) => (
           <button

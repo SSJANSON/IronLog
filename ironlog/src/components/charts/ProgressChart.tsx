@@ -1,10 +1,11 @@
 import { Line } from 'react-chartjs-2';
-import type { FilterRange, RepRange } from '../../types';
+import type { FilterRange, Movement, RepRange } from '../../types';
 import { baseChartOptions } from '../../lib/chartDefaults';
 import { useStrengthChartData } from '../../hooks/useChartData';
 import { FILTER_LABELS } from '../../lib/dateUtils';
 
 interface ProgressChartProps {
+  movement: Movement;
   filterRange: FilterRange;
   onFilterChange: (range: FilterRange) => void;
   repRange: RepRange;
@@ -14,17 +15,15 @@ interface ProgressChartProps {
 const FILTERS: FilterRange[] = ['4w', '3m', '6m', '1y', 'all'];
 const REP_RANGES: RepRange[] = ['all', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
-export function ProgressChart({ filterRange, onFilterChange, repRange, onRepRangeChange }: ProgressChartProps) {
-  const { labels, datasets } = useStrengthChartData(filterRange, repRange);
+export function ProgressChart({ movement, filterRange, onFilterChange, repRange, onRepRangeChange }: ProgressChartProps) {
+  const { labels, datasets, prValue } = useStrengthChartData(filterRange, repRange, movement);
 
   const options = {
     ...baseChartOptions,
     animation: { duration: 400 },
     plugins: {
       ...baseChartOptions.plugins,
-      title: {
-        display: false,
-      },
+      title: { display: false },
     },
     scales: {
       ...baseChartOptions.scales,
@@ -32,9 +31,9 @@ export function ProgressChart({ filterRange, onFilterChange, repRange, onRepRang
         ...baseChartOptions.scales.y,
         title: {
           display: true,
-          text: 'Top Set Weight (kg)',
-          color: 'var(--color-text-secondary)',
-          font: { family: 'var(--font-sans)', size: 11 },
+          text: 'TOP SET (KG)',
+          color: '#444',
+          font: { family: 'Space Grotesk, system-ui, sans-serif', size: 10 },
         },
       },
     },
@@ -42,6 +41,12 @@ export function ProgressChart({ filterRange, onFilterChange, repRange, onRepRang
 
   return (
     <div className="chart-container">
+      <div className="chart-header-row">
+        <span className="chart-metric-label">TOP SET</span>
+        {prValue != null && (
+          <span className="chart-pr-badge">{prValue} KG PR</span>
+        )}
+      </div>
       <div className="chart-filters">
         {FILTERS.map((f) => (
           <button

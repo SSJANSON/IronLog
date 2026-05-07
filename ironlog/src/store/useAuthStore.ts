@@ -28,6 +28,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   signUp: async (email, password, username) => {
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+    if (existing) return 'Username is already taken';
+
     const { error } = await supabase.auth.signUp({
       email,
       password,

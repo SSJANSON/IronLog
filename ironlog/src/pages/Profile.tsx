@@ -4,20 +4,36 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { useProfileStore } from '../store/useProfileStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function Profile() {
   const { profile, updateProfile } = useProfileStore();
   const signOut = useAuthStore((s) => s.signOut);
-  const [displayName, setDisplayName] = useState(profile.displayName);
-  const [username, setUsername] = useState(profile.username);
+
+  const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
+  const [username, setUsername] = useState(profile?.username ?? '');
+  const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const handleSave = () => {
-    updateProfile({ displayName: displayName.trim(), username: username.trim() });
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.displayName);
+      setUsername(profile.username);
+    }
+  }, [profile?.id]);
+
+  const handleSave = async () => {
+    setError(null);
+    const err = await updateProfile({
+      displayName: displayName.trim(),
+      username: username.trim(),
+    });
+    if (err) { setError(err); return; }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
+
+  if (!profile) return null;
 
   return (
     <div className="page">
@@ -25,17 +41,17 @@ export function Profile() {
       <div className="page-content">
         <Card className="profile-card">
           <div className="profile-avatar">
-            {profile.displayName[0].toUpperCase()}
+            {profile.displayName[0]?.toUpperCase() ?? '?'}
           </div>
+          <Input
+            label="Username"
+            value={username}
+            onChange={(e) => { setUsername(e.target.value); setError(null); }}
+          />
           <Input
             label="Display Name"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-          />
-          <Input
-            label="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
           />
 
           <div className="input-group">
@@ -68,6 +84,8 @@ export function Profile() {
               />
             </label>
           </div>
+
+          {error && <p className="auth-error">{error}</p>}
 
           <Button variant="primary" fullWidth onClick={handleSave}>
             {saved ? 'Saved!' : 'Save Changes'}

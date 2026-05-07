@@ -4,6 +4,7 @@ import type { WorkoutSession, PersonalRecord, MovementLog } from '../types';
 export interface FeedEntry {
   id: string;
   userId: string;
+  sessionId: string;
   username: string;
   displayName: string;
   sessionName: string;
@@ -39,7 +40,7 @@ export async function fetchFeed(): Promise<FeedEntry[]> {
   // Fetch feed items
   const { data, error } = await supabase
     .from('feed_items')
-    .select('id, user_id, session_name, movement_count, movements, prs, created_at')
+    .select('id, user_id, session_id, session_name, movement_count, movements, prs, created_at')
     .eq('type', 'session')
     .order('created_at', { ascending: false })
     .limit(50);
@@ -63,6 +64,7 @@ export async function fetchFeed(): Promise<FeedEntry[]> {
     return {
       id: item.id,
       userId: item.user_id,
+      sessionId: item.session_id ?? '',
       username: profile?.username ?? '',
       displayName: profile?.display_name ?? '',
       sessionName: item.session_name ?? '',

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { WorkoutSession, Set, TemplateMovement, PRMap } from '../types';
 import { buildPRMap } from '../lib/prDetection';
 import { supabase } from '../lib/supabase';
+import { useFeedStore } from './useFeedStore';
 
 interface WorkoutStore {
   sessions: WorkoutSession[];
@@ -151,9 +152,9 @@ export const useWorkoutStore = create<WorkoutStore>()((set, get) => ({
     const newSessions = get().sessions.map((s) => s.id === session.id ? session : s);
     set({ sessions: newSessions, prs: buildPRMap(newSessions) });
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    void supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
-      supabase.from('sessions').update({
+      await supabase.from('sessions').update({
         template_name: session.templateName,
         date: session.date,
         movements: session.movements,
@@ -164,10 +165,12 @@ export const useWorkoutStore = create<WorkoutStore>()((set, get) => ({
   deleteSession: (id) => {
     const newSessions = get().sessions.filter((s) => s.id !== id);
     set({ sessions: newSessions, prs: buildPRMap(newSessions) });
+    useFeedStore.getState().removeFeedItem(id);
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    void supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
-      supabase.from('sessions').delete().eq('id', id).eq('user_id', user.id);
+      await supabase.from('sessions').delete().eq('id', id).eq('user_id', user.id);
+      // feed_items rows cascade-delete automatically via FK constraint
     });
   },
 }));

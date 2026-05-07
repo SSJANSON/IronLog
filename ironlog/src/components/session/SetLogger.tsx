@@ -57,7 +57,9 @@ export function SetLogger({ session, onDiscard }: SetLoggerProps) {
               movement={log.movement}
               sets={log.sets}
               previousTopSet={prevTop}
+              targetSets={templateMovement?.targetSets ?? 1}
               targetReps={templateMovement?.targetReps}
+              backdownSets={templateMovement?.backdownSets ?? 0}
               backdownReps={templateMovement?.backdownReps}
             />
           );

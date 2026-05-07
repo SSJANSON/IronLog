@@ -23,19 +23,13 @@ ChartJS.register(
   Filler
 );
 
+export const ACCENT = '#CCFF00';
+export const ACCENT_TRANSLUCENT = 'rgba(204, 255, 0, 0.15)';
+
 export const MOVEMENT_COLORS = {
-  squat: {
-    solid: '#7C3AED',
-    translucent: 'rgba(124, 58, 237, 0.15)',
-  },
-  bench: {
-    solid: '#EF4444',
-    translucent: 'rgba(239, 68, 68, 0.15)',
-  },
-  deadlift: {
-    solid: '#22C55E',
-    translucent: 'rgba(34, 197, 94, 0.15)',
-  },
+  squat:    { solid: ACCENT, translucent: ACCENT_TRANSLUCENT },
+  bench:    { solid: ACCENT, translucent: ACCENT_TRANSLUCENT },
+  deadlift: { solid: ACCENT, translucent: ACCENT_TRANSLUCENT },
 } as const;
 
 export const baseChartOptions = {
@@ -43,40 +37,35 @@ export const baseChartOptions = {
   maintainAspectRatio: false,
   animation: { duration: 400 },
   plugins: {
-    legend: {
-      labels: {
-        color: '#ffffff',
-        font: { family: 'Inter, system-ui, sans-serif', size: 13 },
-        boxWidth: 12,
-        boxHeight: 12,
-        borderRadius: 3,
-      },
-    },
+    legend: { display: false },
     tooltip: {
-      backgroundColor: '#1C1C27',
-      titleColor: '#ffffff',
-      bodyColor: '#ffffff',
-      borderColor: '#2A2A3A',
+      backgroundColor: '#111',
+      titleColor: ACCENT,
+      bodyColor: '#ccc',
+      borderColor: '#2E2E2E',
       borderWidth: 1,
       padding: 10,
-      titleFont: { family: 'Inter, system-ui, sans-serif', weight: 'bold' as const },
-      bodyFont: { family: 'Inter, system-ui, sans-serif' },
+      titleFont: { family: 'Space Grotesk, system-ui, sans-serif', weight: 'bold' as const, size: 12 },
+      bodyFont: { family: 'Space Grotesk, system-ui, sans-serif', size: 12 },
     },
   },
   scales: {
     x: {
       ticks: {
-        color: '#ffffff',
-        font: { family: 'Inter, system-ui, sans-serif', size: 11 },
+        color: '#666',
+        font: { family: 'Space Grotesk, system-ui, sans-serif', size: 10 },
+        maxRotation: 0,
       },
-      grid: { color: 'rgba(255,255,255,0.08)' },
+      grid: { color: '#2E2E2E' },
+      border: { color: '#2E2E2E' },
     },
     y: {
       ticks: {
-        color: '#ffffff',
-        font: { family: 'Inter, system-ui, sans-serif', size: 11 },
+        color: '#666',
+        font: { family: 'Space Grotesk, system-ui, sans-serif', size: 10 },
       },
-      grid: { color: 'rgba(255,255,255,0.08)' },
+      grid: { color: '#2E2E2E' },
+      border: { color: '#2E2E2E' },
     },
   },
 };

@@ -18,7 +18,7 @@ export function detectNewPRs(
     const existing = existingPRs[log.movement];
 
     for (const set of log.sets) {
-      const e1rm = epley1RM(set.weight, set.reps);
+      const e1rm = epley1RM(set.weight, set.reps, set.rpe);
       const isNewPR = !existing || e1rm > existing.e1rm;
 
       if (isNewPR) {
@@ -48,7 +48,7 @@ export function buildPRMap(sessions: WorkoutSession[]): PRMap {
     for (const log of session.movements) {
       if (!isKnownMovement(log.movement)) continue;
       for (const set of log.sets) {
-        const e1rm = epley1RM(set.weight, set.reps);
+        const e1rm = epley1RM(set.weight, set.reps, set.rpe);
         const existing = map[log.movement];
         if (!existing || e1rm > existing.e1rm) {
           map[log.movement] = {

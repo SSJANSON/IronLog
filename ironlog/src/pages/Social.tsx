@@ -53,7 +53,8 @@ export function Social() {
 
   const friendIds = new Set(friends.map((f) => f.id));
   const acceptedFriends = friends.filter((f) => f.status === 'accepted');
-  const pendingFriends = friends.filter((f) => f.status === 'pending');
+  const incomingRequests = friends.filter((f) => f.status === 'pending' && f.direction === 'received');
+  const outgoingRequests = friends.filter((f) => f.status === 'pending' && f.direction === 'sent');
 
   return (
     <div className="page">
@@ -71,7 +72,7 @@ export function Social() {
             onClick={() => setActiveTab('friends')}
           >
             Friends {acceptedFriends.length > 0 && `(${acceptedFriends.length})`}
-            {pendingFriends.length > 0 && <span className="friend-badge">{pendingFriends.length}</span>}
+            {incomingRequests.length > 0 && <span className="friend-badge">{incomingRequests.length}</span>}
           </button>
         </div>
 
@@ -203,15 +204,29 @@ export function Social() {
               </div>
             )}
 
-            {pendingFriends.length > 0 && (
+            {incomingRequests.length > 0 && (
               <>
                 <p className="friends-section-label">Requests</p>
                 <div className="friend-list">
-                  {pendingFriends.map((f) => (
+                  {incomingRequests.map((f) => (
                     <FriendCard
                       key={f.id}
                       friend={f}
                       onAccept={() => acceptFriendRequest(f.id)}
+                      onRemove={() => removeFriend(f.id)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+            {outgoingRequests.length > 0 && (
+              <>
+                <p className="friends-section-label">Sent</p>
+                <div className="friend-list">
+                  {outgoingRequests.map((f) => (
+                    <FriendCard
+                      key={f.id}
+                      friend={f}
                       onRemove={() => removeFriend(f.id)}
                     />
                   ))}
@@ -234,7 +249,7 @@ export function Social() {
               </>
             )}
 
-            {friends.length === 0 && searchResults.length === 0 && (
+            {acceptedFriends.length === 0 && incomingRequests.length === 0 && outgoingRequests.length === 0 && searchResults.length === 0 && (
               <Card className="empty-state">
                 <p>Search for friends by username to get started.</p>
               </Card>
