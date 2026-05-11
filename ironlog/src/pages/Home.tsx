@@ -16,6 +16,12 @@ export function Home() {
   const [searching, setSearching] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const [expandedBd, setExpandedBd] = useState<Set<string>>(new Set());
+  const toggleBd = (key: string) => setExpandedBd((prev) => {
+    const next = new Set(prev);
+    next.has(key) ? next.delete(key) : next.add(key);
+    return next;
+  });
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -166,13 +172,22 @@ export function Home() {
                           </table>
                         </div>
                       );
+                      const bdKey = `${item.id}-${log.movement}`;
+                      const bdExpanded = expandedBd.has(bdKey);
                       return (
                         <div key={log.movement} className="feed-card__movement">
                           <span className={`feed-card__movement-name movement-${log.movement}`}>
                             {getMovementLabel(log.movement)}
                           </span>
                           {topSets.length > 0 && <SetGroup sets={topSets} label="Top Sets" />}
-                          {backdownSets.length > 0 && <SetGroup sets={backdownSets} label="Backdown" />}
+                          {backdownSets.length > 0 && (
+                            <>
+                              {bdExpanded && <SetGroup sets={backdownSets} label="Backdown" />}
+                              <button className="feed-card__bd-toggle" onClick={() => toggleBd(bdKey)}>
+                                {bdExpanded ? 'Hide backdowns' : `+${backdownSets.length} backdown${backdownSets.length > 1 ? 's' : ''}`}
+                              </button>
+                            </>
+                          )}
                         </div>
                       );
                     })}

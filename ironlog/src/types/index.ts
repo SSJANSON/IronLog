@@ -22,6 +22,11 @@ export interface WorkoutSession {
   completed: boolean;
 }
 
+export interface BackdownGroup {
+  sets: number;
+  reps: number;
+}
+
 export interface TemplateMovement {
   id: string;
   name: string;
@@ -29,6 +34,7 @@ export interface TemplateMovement {
   targetReps: number;
   backdownSets?: number;
   backdownReps?: number;
+  backdownGroups?: BackdownGroup[];
 }
 
 export interface WorkoutTemplate {

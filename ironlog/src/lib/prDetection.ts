@@ -11,7 +11,9 @@ export function detectNewPRs(
   session: WorkoutSession,
   existingPRs: PRMap
 ): PersonalRecord[] {
-  const newPRs: PersonalRecord[] = [];
+  // Keep only the best e1RM per (movement, reps) so duplicate sets at the
+  // same rep range only produce one PR entry.
+  const best = new Map<string, PersonalRecord>();
 
   for (const log of session.movements) {
     if (!isKnownMovement(log.movement)) continue;
@@ -19,10 +21,12 @@ export function detectNewPRs(
 
     for (const set of log.sets) {
       const e1rm = epley1RM(set.weight, set.reps, set.rpe);
-      const isNewPR = !existing || e1rm > existing.e1rm;
+      if (existing && e1rm <= existing.e1rm) continue;
 
-      if (isNewPR) {
-        newPRs.push({
+      const key = `${log.movement}-${set.reps}`;
+      const prev = best.get(key);
+      if (!prev || e1rm > prev.e1rm) {
+        best.set(key, {
           movement: log.movement,
           weight: set.weight,
           reps: set.reps,
@@ -34,7 +38,7 @@ export function detectNewPRs(
     }
   }
 
-  return newPRs;
+  return Array.from(best.values());
 }
 
 export function buildPRMap(sessions: WorkoutSession[]): PRMap {

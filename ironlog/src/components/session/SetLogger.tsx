@@ -51,6 +51,11 @@ export function SetLogger({ session, onDiscard }: SetLoggerProps) {
           );
           const templateMovement = template?.movements.find((m) => m.name === log.movement);
 
+          const backdownGroups = templateMovement?.backdownGroups ??
+            (templateMovement?.backdownSets
+              ? [{ sets: templateMovement.backdownSets, reps: templateMovement.backdownReps ?? 0 }]
+              : []);
+
           return (
             <MovementCard
               key={log.movement}
@@ -59,8 +64,7 @@ export function SetLogger({ session, onDiscard }: SetLoggerProps) {
               previousTopSet={prevTop}
               targetSets={templateMovement?.targetSets ?? 1}
               targetReps={templateMovement?.targetReps}
-              backdownSets={templateMovement?.backdownSets ?? 0}
-              backdownReps={templateMovement?.backdownReps}
+              backdownGroups={backdownGroups}
             />
           );
         })}

@@ -84,89 +84,78 @@ export function Dashboard() {
           ) : (
             <div className="session-list">
               {recentSessions.map((session) => (
-                <Card key={session.id} className="session-summary-card">
-                  <div className="session-summary-card__header">
-                    <strong>{session.templateName}</strong>
-                    <div className="session-summary-card__actions">
-                      <span className="session-summary-card__date">
+                <Card key={session.id} className="feed-card">
+                  <div className="feed-card__meta">
+                    <span className="feed-card__name">{session.templateName}</span>
+                    <div className="feed-card__actions">
+                      <span className="feed-card__time">
                         {format(new Date(session.date), 'MMM d, yyyy')}
                       </span>
                       <button
-                        className="session-edit-btn"
+                        className="feed-card__action-btn"
                         onClick={() => setEditingSession(session)}
-                        aria-label="Edit session"
+                        aria-label="Edit"
                       >
-                        Edit
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
                       </button>
                       {confirmDeleteId === session.id ? (
                         <>
-                          <button
-                            className="session-delete-confirm"
-                            onClick={() => {
-                              deleteSession(session.id);
-                              setConfirmDeleteId(null);
-                            }}
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            className="session-delete-cancel"
-                            onClick={() => setConfirmDeleteId(null)}
-                          >
-                            Cancel
-                          </button>
+                          <button className="feed-card__confirm-yes" onClick={() => { deleteSession(session.id); setConfirmDeleteId(null); }}>Delete</button>
+                          <button className="feed-card__confirm-no" onClick={() => setConfirmDeleteId(null)}>Cancel</button>
                         </>
                       ) : (
                         <button
-                          className="session-delete-btn"
+                          className="feed-card__action-btn"
                           onClick={() => setConfirmDeleteId(session.id)}
-                          aria-label="Delete session"
+                          aria-label="Delete"
                         >
-                          ×
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
                         </button>
                       )}
                     </div>
                   </div>
-                  <div className="session-detail">
-                    {session.movements
-                      .filter((log) => log.sets.length > 0)
-                      .map((log) => {
-                        const topSets = log.sets.filter((s) => !s.isBackdown);
-                        const backdownSets = log.sets.filter((s) => s.isBackdown);
-                        const renderTable = (sets: typeof log.sets, backdown: boolean) => (
-                          <div className="session-detail__group">
-                            <span className={`session-detail__set-group-label${backdown ? ' session-detail__set-group-label--backdown' : ''}`}>
-                              {backdown ? 'Backdown Sets' : 'Top Sets'}
-                            </span>
-                            <div className="session-detail__sets">
-                              <div className="session-detail__set-header">
-                                <span>#</span>
-                                <span>Weight</span>
-                                <span>Reps</span>
-                                <span>RPE</span>
-                              </div>
-                              {sets.map((set, idx) => (
-                                <div key={set.id} className="session-detail__set-row">
-                                  <span>{idx + 1}</span>
-                                  <span>{set.weight}kg</span>
-                                  <span>{set.reps}</span>
-                                  <span>{set.rpe ?? '—'}</span>
+
+                  {session.movements.filter((log) => log.sets.length > 0).length > 0 && (
+                    <div className="feed-card__movements">
+                      {session.movements
+                        .filter((log) => log.sets.length > 0)
+                        .map((log) => {
+                          const topSets = log.sets.filter((s) => !s.isBackdown);
+                          const backdownSets = log.sets.filter((s) => s.isBackdown);
+                          return (
+                            <div key={log.movement} className="feed-card__movement">
+                              <span className={`feed-card__movement-name movement-${log.movement}`}>
+                                {getMovementLabel(log.movement)}
+                              </span>
+                              {topSets.length > 0 && (
+                                <div className="feed-card__set-group">
+                                  <table className="feed-card__set-table">
+                                    <thead><tr><td>Weight</td><td>Reps</td><td>RPE</td></tr></thead>
+                                    <tbody>
+                                      {topSets.map((s) => (
+                                        <tr key={s.id}><td>{s.weight}kg</td><td>{s.reps}</td><td>{s.rpe ?? '—'}</td></tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
                                 </div>
-                              ))}
+                              )}
+                              {backdownSets.length > 0 && (
+                                <div className="feed-card__set-group feed-card__set-group--backdown">
+                                  <span className="feed-card__set-label">Backdown</span>
+                                  <table className="feed-card__set-table">
+                                    <tbody>
+                                      {backdownSets.map((s) => (
+                                        <tr key={s.id}><td>{s.weight}kg</td><td>{s.reps}</td><td>{s.rpe ?? '—'}</td></tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        );
-                        return (
-                          <div key={log.movement} className="complete-movement">
-                            <span className={`complete-movement__name movement-${log.movement}`}>
-                              {getMovementLabel(log.movement)}
-                            </span>
-                            {topSets.length > 0 && renderTable(topSets, false)}
-                            {backdownSets.length > 0 && renderTable(backdownSets, true)}
-                          </div>
-                        );
-                      })}
-                  </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </Card>
               ))}
             </div>

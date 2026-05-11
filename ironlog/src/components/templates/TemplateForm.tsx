@@ -11,25 +11,41 @@ interface TemplateFormProps {
 
 const PRESET_OPTIONS = ['squat', 'bench', 'deadlift', 'custom'] as const;
 
+interface BackdownGroupForm {
+  id: string;
+  sets: string;
+  reps: string;
+}
+
 interface FormMovement {
   id: string;
   name: string;
   targetSets: string;
   targetReps: string;
-  backdownSets: string;
-  backdownReps: string;
-  showBackdown: boolean;
+  backdownGroups: BackdownGroupForm[];
 }
 
 function toFormMovement(m: TemplateMovement): FormMovement {
+  let backdownGroups: BackdownGroupForm[] = [];
+  if (m.backdownGroups?.length) {
+    backdownGroups = m.backdownGroups.map((g) => ({
+      id: crypto.randomUUID(),
+      sets: String(g.sets),
+      reps: String(g.reps),
+    }));
+  } else if (m.backdownSets) {
+    backdownGroups = [{
+      id: crypto.randomUUID(),
+      sets: String(m.backdownSets),
+      reps: m.backdownReps ? String(m.backdownReps) : '',
+    }];
+  }
   return {
     id: m.id,
     name: m.name,
     targetSets: String(m.targetSets),
     targetReps: String(m.targetReps),
-    backdownSets: m.backdownSets ? String(m.backdownSets) : '',
-    backdownReps: m.backdownReps ? String(m.backdownReps) : '',
-    showBackdown: !!(m.backdownSets || m.backdownReps),
+    backdownGroups,
   };
 }
 
@@ -47,20 +63,33 @@ export function TemplateForm({ initial, onSubmit, onCancel }: TemplateFormProps)
     if (!movName) return;
     setMovements((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), name: movName, targetSets: '', targetReps: '', backdownSets: '', backdownReps: '', showBackdown: false },
+      { id: crypto.randomUUID(), name: movName, targetSets: '', targetReps: '', backdownGroups: [] },
     ]);
     if (addType === 'custom') setCustomName('');
   };
 
   const handleRemove = (id: string) => setMovements((prev) => prev.filter((m) => m.id !== id));
 
-  const handleField = (id: string, field: keyof FormMovement, value: string | boolean) =>
+  const handleField = (id: string, field: 'targetSets' | 'targetReps', value: string) =>
     setMovements((prev) => prev.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
 
-  const toggleBackdown = (id: string) =>
-    setMovements((prev) =>
-      prev.map((m) => m.id === id ? { ...m, showBackdown: !m.showBackdown, backdownSets: '', backdownReps: '' } : m)
-    );
+  const handleAddBackdownGroup = (movId: string) =>
+    setMovements((prev) => prev.map((m) => m.id === movId
+      ? { ...m, backdownGroups: [...m.backdownGroups, { id: crypto.randomUUID(), sets: '', reps: '' }] }
+      : m
+    ));
+
+  const handleRemoveBackdownGroup = (movId: string, groupId: string) =>
+    setMovements((prev) => prev.map((m) => m.id === movId
+      ? { ...m, backdownGroups: m.backdownGroups.filter((g) => g.id !== groupId) }
+      : m
+    ));
+
+  const handleBackdownGroupField = (movId: string, groupId: string, field: 'sets' | 'reps', value: string) =>
+    setMovements((prev) => prev.map((m) => m.id === movId
+      ? { ...m, backdownGroups: m.backdownGroups.map((g) => g.id === groupId ? { ...g, [field]: value } : g) }
+      : m
+    ));
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -68,6 +97,8 @@ export function TemplateForm({ initial, onSubmit, onCancel }: TemplateFormProps)
     if (movements.length === 0) e.movements = 'Add at least one movement';
     if (movements.some((m) => !m.targetSets.trim() || !m.targetReps.trim()))
       e.movements = 'Fill in sets and reps for every movement';
+    if (movements.some((m) => m.backdownGroups.some((g) => !g.sets.trim() || !g.reps.trim())))
+      e.movements = 'Fill in sets and reps for every backdown group';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -80,8 +111,12 @@ export function TemplateForm({ initial, onSubmit, onCancel }: TemplateFormProps)
       name: m.name,
       targetSets: Math.max(1, parseInt(m.targetSets, 10) || 1),
       targetReps: Math.max(1, parseInt(m.targetReps, 10) || 1),
-      backdownSets: m.showBackdown && m.backdownSets ? parseInt(m.backdownSets, 10) : undefined,
-      backdownReps: m.showBackdown && m.backdownReps ? parseInt(m.backdownReps, 10) : undefined,
+      backdownGroups: m.backdownGroups.length > 0
+        ? m.backdownGroups.map((g) => ({
+            sets: Math.max(1, parseInt(g.sets, 10) || 1),
+            reps: Math.max(1, parseInt(g.reps, 10) || 1),
+          }))
+        : undefined,
     })));
   };
 
@@ -116,7 +151,6 @@ export function TemplateForm({ initial, onSubmit, onCancel }: TemplateFormProps)
             <div className="tmpl-table__head">
               <span>SETS</span>
               <span>REPS</span>
-              <span></span>
             </div>
             <div className="tmpl-table__row">
               <input
@@ -137,34 +171,27 @@ export function TemplateForm({ initial, onSubmit, onCancel }: TemplateFormProps)
                 onChange={(e) => handleField(m.id, 'targetReps', e.target.value)}
                 inputMode="numeric"
               />
-              <div className="tmpl-table__action">
-                <button
-                  type="button"
-                  className={`tmpl-bd-toggle${m.showBackdown ? ' tmpl-bd-toggle--active' : ''}`}
-                  onClick={() => toggleBackdown(m.id)}
-                >
-                  BD
-                </button>
-              </div>
             </div>
           </div>
 
-          {/* Backdown table */}
-          {m.showBackdown && (
-            <div className="tmpl-table tmpl-table--backdown">
-              <div className="tmpl-table__head">
-                <span>BD SETS</span>
-                <span>BD REPS</span>
-                <span></span>
-              </div>
-              <div className="tmpl-table__row">
+          {/* Backdown groups */}
+          {m.backdownGroups.map((group, gIdx) => (
+            <div key={group.id} className="tmpl-bd-group">
+              {gIdx === 0 && (
+                <div className="tmpl-bd-group__head">
+                  <span>BD SETS</span>
+                  <span>BD REPS</span>
+                  <span />
+                </div>
+              )}
+              <div className="tmpl-table__row tmpl-bd-group__row">
                 <input
                   className="tmpl-num-input"
                   type="number"
                   min="1"
                   placeholder="—"
-                  value={m.backdownSets}
-                  onChange={(e) => handleField(m.id, 'backdownSets', e.target.value)}
+                  value={group.sets}
+                  onChange={(e) => handleBackdownGroupField(m.id, group.id, 'sets', e.target.value)}
                   inputMode="numeric"
                 />
                 <input
@@ -172,14 +199,30 @@ export function TemplateForm({ initial, onSubmit, onCancel }: TemplateFormProps)
                   type="number"
                   min="1"
                   placeholder="—"
-                  value={m.backdownReps}
-                  onChange={(e) => handleField(m.id, 'backdownReps', e.target.value)}
+                  value={group.reps}
+                  onChange={(e) => handleBackdownGroupField(m.id, group.id, 'reps', e.target.value)}
                   inputMode="numeric"
                 />
-                <div></div>
+                <button
+                  type="button"
+                  className="tmpl-bd-group__remove"
+                  onClick={() => handleRemoveBackdownGroup(m.id, group.id)}
+                  aria-label="Remove backdown group"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>remove</span>
+                </button>
               </div>
             </div>
-          )}
+          ))}
+
+          <button
+            type="button"
+            className="tmpl-card__bd-btn"
+            onClick={() => handleAddBackdownGroup(m.id)}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>add</span>
+            Backdown Set
+          </button>
         </div>
       ))}
 
