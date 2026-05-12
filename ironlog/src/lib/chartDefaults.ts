@@ -23,13 +23,13 @@ ChartJS.register(
   Filler
 );
 
-export const ACCENT = '#CCFF00';
-export const ACCENT_TRANSLUCENT = 'rgba(204, 255, 0, 0.15)';
+export const ACCENT = '#FF4500';
+export const ACCENT_TRANSLUCENT = 'rgba(255, 69, 0, 0.15)';
 
 export const MOVEMENT_COLORS = {
-  squat:    { solid: ACCENT, translucent: ACCENT_TRANSLUCENT },
-  bench:    { solid: ACCENT, translucent: ACCENT_TRANSLUCENT },
-  deadlift: { solid: ACCENT, translucent: ACCENT_TRANSLUCENT },
+  squat:    { solid: '#7C3AED', translucent: 'rgba(124, 58, 237, 0.12)' },
+  bench:    { solid: '#EF4444', translucent: 'rgba(239, 68, 68, 0.12)'  },
+  deadlift: { solid: '#22C55E', translucent: 'rgba(34, 197, 94, 0.12)'  },
 } as const;
 
 export const baseChartOptions = {
@@ -39,10 +39,10 @@ export const baseChartOptions = {
   plugins: {
     legend: { display: false },
     tooltip: {
-      backgroundColor: '#111',
-      titleColor: ACCENT,
-      bodyColor: '#ccc',
-      borderColor: '#2E2E2E',
+      backgroundColor: '#fff',
+      titleColor: '#1A1A1A',
+      bodyColor: '#424242',
+      borderColor: '#D4D4D4',
       borderWidth: 1,
       padding: 10,
       titleFont: { family: 'Space Grotesk, system-ui, sans-serif', weight: 'bold' as const, size: 12 },
@@ -52,20 +52,20 @@ export const baseChartOptions = {
   scales: {
     x: {
       ticks: {
-        color: '#666',
+        color: '#757575',
         font: { family: 'Space Grotesk, system-ui, sans-serif', size: 10 },
         maxRotation: 0,
       },
-      grid: { color: '#2E2E2E' },
-      border: { color: '#2E2E2E' },
+      grid: { color: 'rgba(0,0,0,0.06)' },
+      border: { color: '#D4D4D4' },
     },
     y: {
       ticks: {
-        color: '#666',
+        color: '#757575',
         font: { family: 'Space Grotesk, system-ui, sans-serif', size: 10 },
       },
-      grid: { color: '#2E2E2E' },
-      border: { color: '#2E2E2E' },
+      grid: { color: 'rgba(0,0,0,0.06)' },
+      border: { color: '#D4D4D4' },
     },
   },
 };

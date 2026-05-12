@@ -4,17 +4,19 @@ import { useWorkoutStore } from '../store/useWorkoutStore';
 import type { FilterRange, Movement, RepRange, Set } from '../types';
 import { topSetWeight, topE1RM, totalVolume } from '../lib/epley';
 import { filterByRange, formatChartDate } from '../lib/dateUtils';
-import { ACCENT, ACCENT_TRANSLUCENT } from '../lib/chartDefaults';
+import { MOVEMENT_COLORS } from '../lib/chartDefaults';
 
 const MOVEMENTS: Movement[] = ['squat', 'bench', 'deadlift'];
 
-function gradientFill(context: { chart: { ctx: CanvasRenderingContext2D; chartArea?: { top: number; bottom: number } } }) {
-  const { ctx, chartArea } = context.chart;
-  if (!chartArea) return 'rgba(204,255,0,0.1)';
-  const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-  gradient.addColorStop(0, 'rgba(204,255,0,0.25)');
-  gradient.addColorStop(1, 'rgba(204,255,0,0)');
-  return gradient;
+function makeGradient(color: string) {
+  return (context: { chart: { ctx: CanvasRenderingContext2D; chartArea?: { top: number; bottom: number } } }) => {
+    const { ctx, chartArea } = context.chart;
+    if (!chartArea) return 'transparent';
+    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    gradient.addColorStop(0, color.replace('0.12)', '0.25)'));
+    gradient.addColorStop(1, color.replace('0.12)', '0)'));
+    return gradient;
+  };
 }
 
 function filterSetsByRepRange(sets: Set[], repRange: RepRange): Set[] {
@@ -44,19 +46,20 @@ export function useStrengthChartData(range: FilterRange, repRange: RepRange, mov
 
     const prValue = data.reduce((max, v) => (v != null && v > (max ?? 0) ? v : max), null as number | null);
 
+    const { solid, translucent } = MOVEMENT_COLORS[movement] ?? MOVEMENT_COLORS.squat;
     const dataset = {
       label: movement.charAt(0).toUpperCase() + movement.slice(1),
       data,
-      borderColor: ACCENT,
-      backgroundColor: gradientFill,
+      borderColor: solid,
+      backgroundColor: makeGradient(translucent),
       fill: true,
       tension: 0.4,
       spanGaps: true,
       borderWidth: 3,
       pointRadius: data.map((v) => (v === prValue && v != null ? 6 : 3)),
       pointHoverRadius: 8,
-      pointBackgroundColor: data.map((v) => (v === prValue && v != null ? ACCENT : ACCENT)),
-      pointBorderColor: data.map((v) => (v === prValue && v != null ? '#fff' : ACCENT)),
+      pointBackgroundColor: solid,
+      pointBorderColor: data.map((v) => (v === prValue && v != null ? '#fff' : solid)),
       pointBorderWidth: data.map((v) => (v === prValue && v != null ? 2 : 0)),
     };
 
@@ -85,19 +88,20 @@ export function useE1RMChartData(range: FilterRange, repRange: RepRange, movemen
 
     const prValue = data.reduce((max, v) => (v != null && v > (max ?? 0) ? v : max), null as number | null);
 
+    const { solid, translucent } = MOVEMENT_COLORS[movement] ?? MOVEMENT_COLORS.squat;
     const dataset = {
       label: movement.charAt(0).toUpperCase() + movement.slice(1),
       data,
-      borderColor: ACCENT,
-      backgroundColor: gradientFill,
+      borderColor: solid,
+      backgroundColor: makeGradient(translucent),
       fill: true,
       tension: 0.4,
       spanGaps: true,
       borderWidth: 3,
       pointRadius: data.map((v) => (v === prValue && v != null ? 6 : 3)),
       pointHoverRadius: 8,
-      pointBackgroundColor: ACCENT,
-      pointBorderColor: data.map((v) => (v === prValue && v != null ? '#fff' : ACCENT)),
+      pointBackgroundColor: solid,
+      pointBorderColor: data.map((v) => (v === prValue && v != null ? '#fff' : solid)),
       pointBorderWidth: data.map((v) => (v === prValue && v != null ? 2 : 0)),
     };
 
@@ -127,12 +131,13 @@ export function useVolumeChartData(range: FilterRange, repRange: RepRange, movem
     const labels = Array.from(weekMap.keys());
     const data = labels.map((w) => Math.round(weekMap.get(w) ?? 0));
 
+    const { solid } = MOVEMENT_COLORS[movement] ?? MOVEMENT_COLORS.squat;
     return {
       labels,
       datasets: [{
         label: movement.charAt(0).toUpperCase() + movement.slice(1),
         data,
-        backgroundColor: ACCENT,
+        backgroundColor: solid,
         borderRadius: 4,
       }],
     };
