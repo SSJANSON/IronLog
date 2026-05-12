@@ -24,6 +24,11 @@ export function You() {
     next.has(key) ? next.delete(key) : next.add(key);
     return next;
   });
+  const [activeTab, setActiveTab] = useState<Map<string, string>>(new Map());
+  const getActiveTab = (sessionId: string, fallback: string) =>
+    activeTab.get(sessionId) ?? fallback;
+  const setTab = (sessionId: string, movement: string) =>
+    setActiveTab((prev) => new Map(prev).set(sessionId, movement));
 
   const recentSessions = [...sessions]
     .filter((s) => s.completed)
@@ -121,58 +126,84 @@ export function You() {
                     </div>
                   </div>
 
-                  {session.movements.filter((log) => log.sets.length > 0).length > 0 && (
-                    <div className="feed-card__movements">
-                      {session.movements
-                        .filter((log) => log.sets.length > 0)
-                        .map((log) => {
-                          const topSets = log.sets.filter((s) => !s.isBackdown);
-                          const backdownSets = log.sets.filter((s) => s.isBackdown);
-                          return (
-                            <div key={log.movement} className="feed-card__movement">
-                              <span className={`feed-card__movement-name movement-${log.movement}`}>
-                                {getMovementLabel(log.movement)}
-                              </span>
-                              {topSets.length > 0 && (
-                                <div className="feed-card__set-group">
-                                  <table className="feed-card__set-table">
-                                    <thead><tr><td>Weight</td><td>Reps</td><td>RPE</td></tr></thead>
+                  {(() => {
+                    const activeMovements = session.movements.filter((log) => log.sets.length > 0);
+                    if (activeMovements.length === 0) return null;
+                    const currentTab = getActiveTab(session.id, activeMovements[0].movement);
+                    const currentLog = activeMovements.find((log) => log.movement === currentTab);
+                    if (!currentLog) return null;
+                    return (
+                      <div className="social-card__tabs-section">
+                        {activeMovements.length > 1 && <div className="social-card__tabs">
+                          {activeMovements.map((log) => {
+                            const topSets = log.sets.filter((s) => !s.isBackdown);
+                            const best = topSets.length > 0
+                              ? topSets.reduce((b, s) => s.weight > b.weight ? s : b, topSets[0])
+                              : null;
+                            return (
+                              <button
+                                key={log.movement}
+                                className={`social-card__tab social-card__tab--${log.movement}${currentTab === log.movement ? ' social-card__tab--active' : ''}`}
+                                onClick={() => setTab(session.id, log.movement)}
+                              >
+                                <span className="social-card__tab-name">{getMovementLabel(log.movement)}</span>
+                                {best && (
+                                  <span className="social-card__tab-stat">{best.weight}kg×{best.reps}</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>}
+                        <div className={`social-card__set-panel social-card__set-panel--${currentLog.movement}`}>
+                          {currentLog.sets.filter((s) => !s.isBackdown).length > 0 && (
+                            <table className="social-card__set-table">
+                              <thead>
+                                <tr><td>Weight</td><td>Reps</td><td>RPE</td></tr>
+                              </thead>
+                              <tbody>
+                                {currentLog.sets.filter((s) => !s.isBackdown).map((s) => (
+                                  <tr key={s.id} className="social-card__set-row">
+                                    <td className="social-card__set-cell social-card__set-cell--weight">{s.weight}kg</td>
+                                    <td className="social-card__set-cell">{s.reps}</td>
+                                    <td className="social-card__set-cell">{s.rpe ?? '—'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                          {currentLog.sets.filter((s) => s.isBackdown).length > 0 && (() => {
+                            const bdKey = `${session.id}-${currentLog.movement}`;
+                            const bdExpanded = expandedBd.has(bdKey);
+                            const backdownSets = currentLog.sets.filter((s) => s.isBackdown);
+                            return (
+                              <>
+                                {bdExpanded && (
+                                  <table className="social-card__set-table social-card__set-table--backdown">
+                                    <thead>
+                                      <tr><td colSpan={3} className="social-card__bd-label">Backdown</td></tr>
+                                      <tr><td>Weight</td><td>Reps</td><td>RPE</td></tr>
+                                    </thead>
                                     <tbody>
-                                      {topSets.map((s) => (
-                                        <tr key={s.id}><td>{s.weight}kg</td><td>{s.reps}</td><td>{s.rpe ?? '—'}</td></tr>
+                                      {backdownSets.map((s) => (
+                                        <tr key={s.id} className="social-card__set-row social-card__set-row--backdown">
+                                          <td className="social-card__set-cell">{s.weight}kg</td>
+                                          <td className="social-card__set-cell">{s.reps}</td>
+                                          <td className="social-card__set-cell">{s.rpe ?? '—'}</td>
+                                        </tr>
                                       ))}
                                     </tbody>
                                   </table>
-                                </div>
-                              )}
-                              {backdownSets.length > 0 && (() => {
-                                const bdKey = `${session.id}-${log.movement}`;
-                                const bdExpanded = expandedBd.has(bdKey);
-                                return (
-                                  <>
-                                    {bdExpanded && (
-                                      <div className="feed-card__set-group">
-                                        <span className="feed-card__set-label">Backdown</span>
-                                        <table className="feed-card__set-table">
-                                          <tbody>
-                                            {backdownSets.map((s) => (
-                                              <tr key={s.id}><td>{s.weight}kg</td><td>{s.reps}</td><td>{s.rpe ?? '—'}</td></tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    )}
-                                    <button className="feed-card__bd-toggle" onClick={() => toggleBd(bdKey)}>
-                                      {bdExpanded ? 'Hide backdowns' : `+${backdownSets.length} backdown${backdownSets.length > 1 ? 's' : ''}`}
-                                    </button>
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
+                                )}
+                                <button className="feed-card__bd-toggle" onClick={() => toggleBd(bdKey)}>
+                                  {bdExpanded ? 'Hide backdowns' : `+${backdownSets.length} backdown${backdownSets.length > 1 ? 's' : ''}`}
+                                </button>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </Card>
               ))}
             </div>
