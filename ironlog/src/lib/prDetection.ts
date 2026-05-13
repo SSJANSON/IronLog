@@ -80,4 +80,13 @@ export function getMovementLabel(movement: string): string {
   return labels[movement] ?? movement.charAt(0).toUpperCase() + movement.slice(1);
 }
 
+export function getMovementTabLabel(movement: string): string {
+  const labels: Record<string, string> = {
+    squat: 'Squat',
+    bench: 'Bench',
+    deadlift: 'Deads',
+  };
+  return labels[movement] ?? movement.charAt(0).toUpperCase() + movement.slice(1);
+}
+
 export { MOVEMENTS };

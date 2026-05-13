@@ -1,6 +1,7 @@
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { WorkoutSession } from '../../types';
-import { MovementCard } from './MovementCard';
+import { MovementCard, type MovementCardHandle } from './MovementCard';
 import { Button } from '../ui/Button';
 import { useWorkoutStore } from '../../store/useWorkoutStore';
 import { useTemplateStore } from '../../store/useTemplateStore';
@@ -23,17 +24,18 @@ export function SetLogger({ session, onDiscard }: SetLoggerProps) {
   const templates = useTemplateStore((s) => s.templates);
   const user = useAuthStore((s) => s.user);
   const template = templates.find((t) => t.id === session.templateId);
+  const cardRefs = useRef<Map<string, MovementCardHandle>>(new Map());
 
-  const handleComplete = async () => {
+  const handleComplete = () => {
+    cardRefs.current.forEach((handle) => handle.flush());
     const completed = completeSession();
     if (!completed) return;
     const newPRs = detectNewPRs(completed, prs);
-    // Save session first, then post to feed (feed_items has FK on sessions)
-    await saveSessionToSupabase(completed);
-    if (user) {
-      postSessionToFeed(user.id, completed, newPRs);
-    }
     navigate('/complete', { state: { session: completed, newPRs } });
+    // Save in background after navigating away
+    saveSessionToSupabase(completed).then(() => {
+      if (user) postSessionToFeed(user.id, completed, newPRs);
+    });
   };
 
   const previousSession = sessions
@@ -45,11 +47,15 @@ export function SetLogger({ session, onDiscard }: SetLoggerProps) {
       <div className="set-logger__movements">
         {session.movements.map((log) => {
           const prevLog = previousSession?.movements.find((m) => m.movement === log.movement);
-          const prevTop = prevLog?.sets.reduce(
+          const prevSets = prevLog?.sets ?? [];
+          const prevTop = prevSets.reduce(
             (best, s) => (!best || s.weight > best.weight ? s : best),
             null as { weight: number; reps: number } | null
           );
           const templateMovement = template?.movements.find((m) => m.name === log.movement);
+          const templateAccessory = !templateMovement
+            ? template?.accessories?.find((a) => a.name === log.movement)
+            : undefined;
 
           const backdownGroups = templateMovement?.backdownGroups ??
             (templateMovement?.backdownSets
@@ -59,11 +65,14 @@ export function SetLogger({ session, onDiscard }: SetLoggerProps) {
           return (
             <MovementCard
               key={log.movement}
+              ref={(el) => { if (el) cardRefs.current.set(log.movement, el); else cardRefs.current.delete(log.movement); }}
               movement={log.movement}
+              variation={log.variation}
               sets={log.sets}
               previousTopSet={prevTop}
-              targetSets={templateMovement?.targetSets ?? 1}
-              targetReps={templateMovement?.targetReps}
+              previousSets={prevSets}
+              targetSets={templateMovement?.targetSets ?? templateAccessory?.sets ?? 1}
+              targetReps={templateMovement?.targetReps ?? templateAccessory?.reps}
               backdownGroups={backdownGroups}
             />
           );

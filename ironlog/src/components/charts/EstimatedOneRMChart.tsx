@@ -10,17 +10,32 @@ interface EstimatedOneRMChartProps {
   onFilterChange: (range: FilterRange) => void;
   repRange: RepRange;
   onRepRangeChange: (range: RepRange) => void;
+  variation?: string;
 }
 
 const FILTERS: FilterRange[] = ['4w', '3m', '6m', '1y', 'all'];
 const REP_RANGES: RepRange[] = ['all', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
-export function EstimatedOneRMChart({ movement, filterRange, onFilterChange, repRange, onRepRangeChange }: EstimatedOneRMChartProps) {
-  const { labels, datasets, prValue } = useE1RMChartData(filterRange, repRange, movement);
+export function EstimatedOneRMChart({ movement, filterRange, onFilterChange, repRange, onRepRangeChange, variation }: EstimatedOneRMChartProps) {
+  const { labels, datasets, prValue, pointVariations } = useE1RMChartData(filterRange, repRange, movement, variation);
 
   const options = {
     ...baseChartOptions,
     animation: { duration: 400 },
+    plugins: {
+      ...baseChartOptions.plugins,
+      tooltip: {
+        ...baseChartOptions.plugins.tooltip,
+        callbacks: {
+          label: (ctx: { parsed: { y: number }; dataIndex: number }) => {
+            const val = ctx.parsed.y;
+            const v = pointVariations[ctx.dataIndex];
+            const varLabel = v && v !== 'competition' ? ` · ${v.charAt(0).toUpperCase() + v.slice(1)}` : '';
+            return `${val}kg e1RM${varLabel}`;
+          },
+        },
+      },
+    },
     scales: {
       ...baseChartOptions.scales,
       y: {

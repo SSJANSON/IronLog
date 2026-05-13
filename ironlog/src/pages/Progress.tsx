@@ -4,6 +4,8 @@ import { ProgressChart } from '../components/charts/ProgressChart';
 import { EstimatedOneRMChart } from '../components/charts/EstimatedOneRMChart';
 import { VolumeChart } from '../components/charts/VolumeChart';
 import type { FilterRange, Movement, RepRange } from '../types';
+import { MOVEMENT_VARIATIONS } from '../types';
+import { useCustomVariations } from '../hooks/useCustomVariations';
 
 type ChartTab = 'strength' | 'e1rm' | 'volume';
 
@@ -24,6 +26,10 @@ export function Progress() {
   const [selectedMovement, setSelectedMovement] = useState<Movement>('squat');
   const [filterRange, setFilterRange] = useState<FilterRange>('3m');
   const [repRange, setRepRange] = useState<RepRange>('all');
+  const [variation, setVariation] = useState<Record<Movement, string>>({
+    squat: 'all', bench: 'all', deadlift: 'all',
+  });
+  const customVariations = useCustomVariations();
 
   return (
     <div className="page">
@@ -38,6 +44,27 @@ export function Progress() {
               onClick={() => setSelectedMovement(m.id)}
             >
               {m.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="chart-filters progress-variation-filters">
+          <button
+            className={`chart-filter-btn${variation[selectedMovement] === 'all' ? ' chart-filter-btn--active' : ''}`}
+            onClick={() => setVariation((prev) => ({ ...prev, [selectedMovement]: 'all' }))}
+          >
+            All
+          </button>
+          {[
+            ...MOVEMENT_VARIATIONS[selectedMovement],
+            ...(customVariations[selectedMovement] ?? []),
+          ].map((v) => (
+            <button
+              key={v}
+              className={`chart-filter-btn${variation[selectedMovement] === v ? ' chart-filter-btn--active' : ''}`}
+              onClick={() => setVariation((prev) => ({ ...prev, [selectedMovement]: v }))}
+            >
+              {v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
           ))}
         </div>
@@ -62,6 +89,7 @@ export function Progress() {
               onFilterChange={setFilterRange}
               repRange={repRange}
               onRepRangeChange={setRepRange}
+              variation={variation[selectedMovement]}
             />
           )}
           {activeTab === 'e1rm' && (
@@ -71,6 +99,7 @@ export function Progress() {
               onFilterChange={setFilterRange}
               repRange={repRange}
               onRepRangeChange={setRepRange}
+              variation={variation[selectedMovement]}
             />
           )}
           {activeTab === 'volume' && (
@@ -80,6 +109,7 @@ export function Progress() {
               onFilterChange={setFilterRange}
               repRange={repRange}
               onRepRangeChange={setRepRange}
+              variation={variation[selectedMovement]}
             />
           )}
         </div>

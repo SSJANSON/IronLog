@@ -6,7 +6,7 @@ import { TemplateCard } from '../components/templates/TemplateCard';
 import { TemplateForm } from '../components/templates/TemplateForm';
 import { useTemplateStore } from '../store/useTemplateStore';
 import { useWorkoutStore } from '../store/useWorkoutStore';
-import type { WorkoutTemplate, TemplateMovement } from '../types';
+import type { WorkoutTemplate, TemplateMovement, Accessory } from '../types';
 
 type Mode = 'list' | 'create' | 'edit';
 
@@ -18,20 +18,20 @@ export function Templates() {
   const [mode, setMode] = useState<Mode>('list');
   const [editingTemplate, setEditingTemplate] = useState<WorkoutTemplate | null>(null);
 
-  const handleCreate = (name: string, movements: TemplateMovement[]) => {
-    addTemplate(name, movements);
+  const handleCreate = (name: string, movements: TemplateMovement[], accessories: Accessory[]) => {
+    addTemplate(name, movements, accessories);
     setMode('list');
   };
 
-  const handleEdit = (name: string, movements: TemplateMovement[]) => {
+  const handleEdit = (name: string, movements: TemplateMovement[], accessories: Accessory[]) => {
     if (!editingTemplate) return;
-    updateTemplate(editingTemplate.id, { name, movements });
+    updateTemplate(editingTemplate.id, { name, movements, accessories });
     setEditingTemplate(null);
     setMode('list');
   };
 
   const handleStart = (template: WorkoutTemplate) => {
-    startSession(template.id, template.name, template.movements);
+    startSession(template.id, template.name, template.movements, template.accessories ?? []);
     navigate('/session');
   };
 

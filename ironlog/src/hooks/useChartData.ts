@@ -25,7 +25,7 @@ function filterSetsByRepRange(sets: Set[], repRange: RepRange): Set[] {
   return sets.filter(({ reps }) => reps === n);
 }
 
-export function useStrengthChartData(range: FilterRange, repRange: RepRange, movement: Movement = 'squat') {
+export function useStrengthChartData(range: FilterRange, repRange: RepRange, movement: Movement = 'squat', variation = 'all') {
   const sessions = useWorkoutStore((s) => s.sessions);
 
   return useMemo(() => {
@@ -37,12 +37,15 @@ export function useStrengthChartData(range: FilterRange, repRange: RepRange, mov
 
     const labels = [...new Set(sorted.map((s) => formatChartDate(s.date)))];
 
-    const data = sorted.map((session) => {
-      const log = session.movements.find((m) => m.movement === movement);
-      if (!log) return null;
+    const pointData = sorted.map((session) => {
+      const log = session.movements.find((m) => m.movement === movement && (variation === 'all' || m.variation === variation));
+      if (!log) return { value: null, variation: null };
       const sets = filterSetsByRepRange(log.sets, repRange);
-      return sets.length ? topSetWeight(sets) : null;
+      return { value: sets.length ? topSetWeight(sets) : null, variation: log.variation ?? null };
     });
+
+    const data = pointData.map((p) => p.value);
+    const pointVariations = pointData.map((p) => p.variation);
 
     const prValue = data.reduce((max, v) => (v != null && v > (max ?? 0) ? v : max), null as number | null);
 
@@ -56,18 +59,28 @@ export function useStrengthChartData(range: FilterRange, repRange: RepRange, mov
       tension: 0.4,
       spanGaps: true,
       borderWidth: 3,
-      pointRadius: data.map((v) => (v === prValue && v != null ? 6 : 3)),
-      pointHoverRadius: 8,
+      pointStyle: data.map((v) => (v === prValue && v != null ? 'rectRot' : 'circle')),
+      pointRadius: data.map((v, i) => {
+        if (v === prValue && v != null) return 8;
+        return pointVariations[i] === 'competition' || !pointVariations[i] ? 5 : 3;
+      }),
+      pointHoverRadius: 10,
       pointBackgroundColor: solid,
-      pointBorderColor: data.map((v) => (v === prValue && v != null ? '#fff' : solid)),
-      pointBorderWidth: data.map((v) => (v === prValue && v != null ? 2 : 0)),
+      pointBorderColor: data.map((v, i) => {
+        if (v === prValue && v != null) return '#fff';
+        return pointVariations[i] === 'competition' || !pointVariations[i] ? '#fff' : solid;
+      }),
+      pointBorderWidth: data.map((v, i) => {
+        if (v === prValue && v != null) return 2;
+        return pointVariations[i] === 'competition' || !pointVariations[i] ? 2 : 0;
+      }),
     };
 
-    return { labels, datasets: [dataset], prValue };
-  }, [sessions, range, repRange, movement]);
+    return { labels, datasets: [dataset], prValue, pointVariations };
+  }, [sessions, range, repRange, movement, variation]);
 }
 
-export function useE1RMChartData(range: FilterRange, repRange: RepRange, movement: Movement = 'squat') {
+export function useE1RMChartData(range: FilterRange, repRange: RepRange, movement: Movement = 'squat', variation = 'all') {
   const sessions = useWorkoutStore((s) => s.sessions);
 
   return useMemo(() => {
@@ -79,12 +92,15 @@ export function useE1RMChartData(range: FilterRange, repRange: RepRange, movemen
 
     const labels = [...new Set(sorted.map((s) => formatChartDate(s.date)))];
 
-    const data = sorted.map((session) => {
-      const log = session.movements.find((m) => m.movement === movement);
-      if (!log) return null;
+    const pointData = sorted.map((session) => {
+      const log = session.movements.find((m) => m.movement === movement && (variation === 'all' || m.variation === variation));
+      if (!log) return { value: null, variation: null };
       const sets = filterSetsByRepRange(log.sets, repRange);
-      return sets.length ? Math.round(topE1RM(sets)) : null;
+      return { value: sets.length ? Math.round(topE1RM(sets)) : null, variation: log.variation ?? null };
     });
+
+    const data = pointData.map((p) => p.value);
+    const pointVariations = pointData.map((p) => p.variation);
 
     const prValue = data.reduce((max, v) => (v != null && v > (max ?? 0) ? v : max), null as number | null);
 
@@ -98,18 +114,28 @@ export function useE1RMChartData(range: FilterRange, repRange: RepRange, movemen
       tension: 0.4,
       spanGaps: true,
       borderWidth: 3,
-      pointRadius: data.map((v) => (v === prValue && v != null ? 6 : 3)),
-      pointHoverRadius: 8,
+      pointStyle: data.map((v) => (v === prValue && v != null ? 'rectRot' : 'circle')),
+      pointRadius: data.map((v, i) => {
+        if (v === prValue && v != null) return 8;
+        return pointVariations[i] === 'competition' || !pointVariations[i] ? 5 : 3;
+      }),
+      pointHoverRadius: 10,
       pointBackgroundColor: solid,
-      pointBorderColor: data.map((v) => (v === prValue && v != null ? '#fff' : solid)),
-      pointBorderWidth: data.map((v) => (v === prValue && v != null ? 2 : 0)),
+      pointBorderColor: data.map((v, i) => {
+        if (v === prValue && v != null) return '#fff';
+        return pointVariations[i] === 'competition' || !pointVariations[i] ? '#fff' : solid;
+      }),
+      pointBorderWidth: data.map((v, i) => {
+        if (v === prValue && v != null) return 2;
+        return pointVariations[i] === 'competition' || !pointVariations[i] ? 2 : 0;
+      }),
     };
 
-    return { labels, datasets: [dataset], prValue };
-  }, [sessions, range, repRange, movement]);
+    return { labels, datasets: [dataset], prValue, pointVariations };
+  }, [sessions, range, repRange, movement, variation]);
 }
 
-export function useVolumeChartData(range: FilterRange, repRange: RepRange, movement: Movement = 'squat') {
+export function useVolumeChartData(range: FilterRange, repRange: RepRange, movement: Movement = 'squat', variation = 'all') {
   const sessions = useWorkoutStore((s) => s.sessions);
 
   return useMemo(() => {
@@ -123,6 +149,7 @@ export function useVolumeChartData(range: FilterRange, repRange: RepRange, movem
       if (!weekMap.has(weekStart)) weekMap.set(weekStart, 0);
       for (const log of session.movements) {
         if (log.movement !== movement) continue;
+        if (variation !== 'all' && log.variation !== variation) continue;
         const sets = filterSetsByRepRange(log.sets, repRange);
         weekMap.set(weekStart, (weekMap.get(weekStart) ?? 0) + totalVolume(sets));
       }
@@ -141,5 +168,5 @@ export function useVolumeChartData(range: FilterRange, repRange: RepRange, movem
         borderRadius: 4,
       }],
     };
-  }, [sessions, range, repRange, movement]);
+  }, [sessions, range, repRange, movement, variation]);
 }

@@ -10,13 +10,14 @@ interface ProgressChartProps {
   onFilterChange: (range: FilterRange) => void;
   repRange: RepRange;
   onRepRangeChange: (range: RepRange) => void;
+  variation?: string;
 }
 
 const FILTERS: FilterRange[] = ['4w', '3m', '6m', '1y', 'all'];
 const REP_RANGES: RepRange[] = ['all', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
-export function ProgressChart({ movement, filterRange, onFilterChange, repRange, onRepRangeChange }: ProgressChartProps) {
-  const { labels, datasets, prValue } = useStrengthChartData(filterRange, repRange, movement);
+export function ProgressChart({ movement, filterRange, onFilterChange, repRange, onRepRangeChange, variation }: ProgressChartProps) {
+  const { labels, datasets, prValue, pointVariations } = useStrengthChartData(filterRange, repRange, movement, variation);
 
   const options = {
     ...baseChartOptions,
@@ -24,6 +25,17 @@ export function ProgressChart({ movement, filterRange, onFilterChange, repRange,
     plugins: {
       ...baseChartOptions.plugins,
       title: { display: false },
+      tooltip: {
+        ...baseChartOptions.plugins.tooltip,
+        callbacks: {
+          label: (ctx: { parsed: { y: number }; dataIndex: number }) => {
+            const val = ctx.parsed.y;
+            const v = pointVariations[ctx.dataIndex];
+            const varLabel = v && v !== 'competition' ? ` · ${v.charAt(0).toUpperCase() + v.slice(1)}` : '';
+            return `${val}kg${varLabel}`;
+          },
+        },
+      },
     },
     scales: {
       ...baseChartOptions.scales,

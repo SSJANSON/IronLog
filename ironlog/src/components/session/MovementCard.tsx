@@ -1,13 +1,22 @@
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import type { Set, BackdownGroup } from '../../types';
 import { getMovementLabel } from '../../lib/prDetection';
 import { useWorkoutStore } from '../../store/useWorkoutStore';
+import { useProfileStore } from '../../store/useProfileStore';
 import { PlateCalculator } from './PlateCalculator';
+
+const MAIN_LIFTS = ['squat', 'bench', 'deadlift'];
+
+export interface MovementCardHandle {
+  flush: () => void;
+}
 
 interface MovementCardProps {
   movement: string;
+  variation?: string;
   sets: Set[];
   previousTopSet?: { weight: number; reps: number } | null;
+  previousSets?: Set[];
   targetSets?: number;
   targetReps?: number;
   backdownGroups?: BackdownGroup[];
@@ -20,44 +29,82 @@ interface PendingRow {
   rpe: string;
 }
 
-function makePendingRow(prefillReps = '', prefillWeight = ''): PendingRow {
-  return { id: crypto.randomUUID(), weight: prefillWeight, reps: prefillReps, rpe: '' };
+function makePendingRow(prefillReps = '', prefillWeight = '', prefillRpe = ''): PendingRow {
+  return { id: crypto.randomUUID(), weight: prefillWeight, reps: prefillReps, rpe: prefillRpe };
 }
 
-export function MovementCard({
-  movement, sets, previousTopSet,
+export const MovementCard = forwardRef<MovementCardHandle, MovementCardProps>(function MovementCard({
+  movement, variation, sets, previousTopSet, previousSets = [],
   targetSets = 1, targetReps, backdownGroups = [],
-}: MovementCardProps) {
+}, ref) {
   const logSet = useWorkoutStore((s) => s.logSet);
   const removeSet = useWorkoutStore((s) => s.removeSet);
+  const profileUnit = useProfileStore((s) => s.profile?.unit ?? 'kg');
+  const isAccessory = !MAIN_LIFTS.includes(movement);
+  const [unit, setUnit] = useState<'kg' | 'lb'>(isAccessory ? 'lb' : profileUnit);
 
   const prefillWeight = previousTopSet ? String(previousTopSet.weight) : '';
   const prefillReps = previousTopSet?.reps
     ? String(previousTopSet.reps)
     : targetReps ? String(targetReps) : '';
 
-  const initBdRows = () =>
-    backdownGroups.flatMap((g) =>
-      Array.from({ length: g.sets }, () => makePendingRow(String(g.reps)))
+  const initBdRows = () => {
+    let bdIdx = 0;
+    return backdownGroups.flatMap((g) =>
+      Array.from({ length: g.sets }, () => {
+        const prev = prevBdSets[bdIdx++];
+        return prev
+          ? makePendingRow(String(prev.reps), String(prev.weight), prev.rpe ? String(prev.rpe) : '')
+          : makePendingRow(String(g.reps));
+      })
     );
+  };
+
+  const prevTopSets = previousSets.filter((s) => !s.isBackdown);
+  const prevBdSets = previousSets.filter((s) => s.isBackdown);
 
   const [topPending, setTopPending] = useState<PendingRow[]>(() =>
-    Array.from({ length: targetSets }, () => makePendingRow(prefillReps, prefillWeight))
+    Array.from({ length: targetSets }, (_, i) => {
+      const prev = prevTopSets[i];
+      if (prev) return makePendingRow(String(prev.reps), String(prev.weight), prev.rpe ? String(prev.rpe) : '');
+      if (isAccessory) return makePendingRow(targetReps ? String(targetReps) : '');
+      return makePendingRow(targetReps ? String(targetReps) : '', prefillWeight);
+    })
   );
   const [bdPending, setBdPending] = useState<PendingRow[]>(initBdRows);
   const [activeWeight, setActiveWeight] = useState<number>(parseFloat(prefillWeight) || 0);
   const [showBackdown, setShowBackdown] = useState(backdownGroups.length > 0);
 
+  useImperativeHandle(ref, () => ({
+    flush: () => {
+      const logValid = (rows: typeof topPending, isBackdown: boolean) => {
+        rows.forEach((row) => {
+          const w = parseFloat(row.weight);
+          const r = parseInt(row.reps, 10);
+          if (w > 0 && r > 0) {
+            logSet(movement, { weight: w, reps: r, rpe: row.rpe ? parseFloat(row.rpe) : undefined, isBackdown });
+          }
+        });
+      };
+      setTopPending((prev) => { logValid(prev, false); return []; });
+      setBdPending((prev) => { logValid(prev, true); return []; });
+    },
+  }));
+
   const loggedTop = sets.filter((s) => !s.isBackdown);
   const loggedBd = sets.filter((s) => s.isBackdown);
 
-  const handleLog = (isBackdown: boolean) => (row: PendingRow) => {
-    const w = parseFloat(row.weight);
-    const r = parseInt(row.reps, 10);
-    if (!w || !r || w <= 0 || r <= 0) return;
-    logSet(movement, { weight: w, reps: r, rpe: row.rpe ? parseFloat(row.rpe) : undefined, isBackdown });
+  const handleAutoLog = (isBackdown: boolean) => (id: string) => {
     const setter = isBackdown ? setBdPending : setTopPending;
-    setter((prev) => prev.filter((p) => p.id !== row.id));
+    setter((prev) => {
+      const row = prev.find((r) => r.id === id);
+      if (!row) return prev;
+      const w = parseFloat(row.weight);
+      const r = parseInt(row.reps, 10);
+      if (!w || !r || w <= 0 || r <= 0) return prev;
+      logSet(movement, { weight: w, reps: r, rpe: row.rpe ? parseFloat(row.rpe) : undefined, isBackdown });
+      return prev.filter((p) => p.id !== id);
+    });
   };
 
   const handleChange = (isBackdown: boolean) => (id: string, field: keyof PendingRow, value: string) => {
@@ -88,25 +135,18 @@ export function MovementCard({
             <span>{s.reps}</span>
             <span>{s.rpe ?? '—'}</span>
             <button
-              className="log-table__check log-table__check--logged"
+              className="log-table__remove-btn"
               onClick={() => removeSet(movement, s.id)}
               aria-label="Unlog set"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
-                check_circle
-              </span>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
             </button>
-            <span />
           </div>
         ))}
 
         {pending.map((row, idx) => (
-          <div
-            key={row.id}
-            className="log-table__row log-table__row--active"
-            style={idx === 0 ? { borderLeft: '4px solid var(--color-accent)' } : undefined}
-          >
-            <span className={`log-table__set-num${idx === 0 ? ' log-table__set-num--active' : ''}`}>
+          <div key={row.id} className="log-table__row log-table__row--active">
+            <span className="log-table__set-num">
               {logged.length + idx + 1}
             </span>
             <input
@@ -122,6 +162,7 @@ export function MovementCard({
               type="number" min="1" placeholder="—"
               value={row.reps}
               onChange={(e) => handleChange(isBackdown)(row.id, 'reps', e.target.value)}
+              onBlur={() => handleAutoLog(isBackdown)(row.id)}
               inputMode="numeric"
             />
             <input
@@ -131,9 +172,6 @@ export function MovementCard({
               onChange={(e) => handleChange(isBackdown)(row.id, 'rpe', e.target.value)}
               inputMode="decimal"
             />
-            <button className="log-table__check" onClick={() => handleLog(isBackdown)(row)} aria-label="Log set">
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>done</span>
-            </button>
             <button
               className="log-table__remove-btn"
               onClick={() => handleRemovePending(isBackdown)(row.id)}
@@ -155,22 +193,38 @@ export function MovementCard({
   return (
     <div className="movement-card">
       <div className="movement-card__header">
-        <h3 className={`movement-card__title movement-${movement}`}>{getMovementLabel(movement)}</h3>
-        {previousTopSet && (
-          <span className="movement-card__prev">
-            Prev {previousTopSet.weight}kg × {previousTopSet.reps}
-          </span>
-        )}
+        <h3 className={`movement-card__title movement-${movement}`}>
+          {variation && variation !== 'competition' && `${variation} `}
+          {getMovementLabel(movement)}
+        </h3>
+        <div className="movement-card__header-right">
+          {isAccessory && (
+            <div className="movement-card__unit-toggle">
+              <button
+                className={`movement-card__unit-btn${unit === 'kg' ? ' movement-card__unit-btn--active' : ''}`}
+                onClick={() => setUnit('kg')}
+              >kg</button>
+              <button
+                className={`movement-card__unit-btn${unit === 'lb' ? ' movement-card__unit-btn--active' : ''}`}
+                onClick={() => setUnit('lb')}
+              >lb</button>
+            </div>
+          )}
+          {previousTopSet && (
+            <span className="movement-card__prev">
+              Prev {previousTopSet.weight}{unit} × {previousTopSet.reps}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Top sets */}
       <div className="log-table">
         <div className="log-table__head">
           <span>SET</span>
-          <span>KG</span>
+          <span>{unit.toUpperCase()}</span>
           <span>REPS</span>
           <span>RPE</span>
-          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>done_all</span>
           <span />
         </div>
         {renderTable(false)}
@@ -182,10 +236,9 @@ export function MovementCard({
           <div className="log-table__section-label">BACKDOWN SETS</div>
           <div className="log-table__head">
             <span>SET</span>
-            <span>KG</span>
+            <span>{unit.toUpperCase()}</span>
             <span>REPS</span>
             <span>RPE</span>
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>done_all</span>
             <span />
           </div>
           {renderTable(true)}
@@ -200,7 +253,9 @@ export function MovementCard({
         </button>
       )}
 
-      {activeWeight >= 20 && <PlateCalculator weight={activeWeight} />}
+      {activeWeight >= 20 && ['squat', 'bench', 'deadlift'].includes(movement) && (
+        <PlateCalculator weight={activeWeight} />
+      )}
     </div>
   );
-}
+});

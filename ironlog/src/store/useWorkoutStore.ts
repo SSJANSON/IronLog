@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { WorkoutSession, Set, TemplateMovement, PRMap } from '../types';
+import type { WorkoutSession, Set, TemplateMovement, Accessory, PRMap } from '../types';
 import { buildPRMap } from '../lib/prDetection';
 import { supabase } from '../lib/supabase';
 import { useFeedStore } from './useFeedStore';
@@ -10,7 +10,7 @@ interface WorkoutStore {
   prs: PRMap;
   loadUserSessions: (userId: string) => Promise<void>;
   clearSessions: () => void;
-  startSession: (templateId: string, templateName: string, movements: TemplateMovement[], date?: string) => void;
+  startSession: (templateId: string, templateName: string, movements: TemplateMovement[], accessories?: Accessory[], date?: string) => void;
   logSet: (movement: string, set: Omit<Set, 'id'>) => void;
   removeSet: (movement: string, setId: string) => void;
   completeSession: () => WorkoutSession | null;
@@ -55,14 +55,17 @@ export const useWorkoutStore = create<WorkoutStore>()((set, get) => ({
     set({ sessions: [], activeSession: null, prs: { squat: null, bench: null, deadlift: null } });
   },
 
-  startSession: (templateId, templateName, movements, date) => {
+  startSession: (templateId, templateName, movements, accessories, date) => {
     const session: WorkoutSession = {
       id: crypto.randomUUID(),
       date: date ?? new Date().toISOString(),
       templateId,
       templateName,
       completed: false,
-      movements: movements.map((m) => ({ movement: m.name, sets: [] })),
+      movements: [
+        ...movements.map((m) => ({ movement: m.name, variation: m.variation, sets: [] })),
+        ...(accessories ?? []).map((a) => ({ movement: a.name, sets: [] })),
+      ],
     };
     set({ activeSession: session });
     localStorage.setItem(DRAFT_KEY, JSON.stringify(session));

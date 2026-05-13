@@ -36,7 +36,8 @@ export function Session() {
     const template = selectedTemplate;
     const name = sessionName.trim() || (isOther ? 'Other' : (template?.name ?? 'Session'));
     const movements = isOther ? OTHER_MOVEMENTS : (template?.movements ?? []);
-    startSession(selectedId, name, movements);
+    const accessories = isOther ? [] : (template?.accessories ?? []);
+    startSession(selectedId, name, movements, accessories);
   };
 
   if (!activeSession) {

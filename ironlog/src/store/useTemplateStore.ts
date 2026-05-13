@@ -1,12 +1,12 @@
 import { create } from 'zustand';
-import type { WorkoutTemplate, TemplateMovement } from '../types';
+import type { WorkoutTemplate, TemplateMovement, Accessory } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface TemplateStore {
   templates: WorkoutTemplate[];
   loadUserTemplates: (userId: string) => Promise<void>;
   clearTemplates: () => void;
-  addTemplate: (name: string, movements: TemplateMovement[]) => Promise<void>;
+  addTemplate: (name: string, movements: TemplateMovement[], accessories?: Accessory[]) => Promise<void>;
   updateTemplate: (id: string, updates: Partial<Omit<WorkoutTemplate, 'id' | 'createdAt'>>) => Promise<void>;
   deleteTemplate: (id: string) => Promise<void>;
 }
@@ -27,6 +27,7 @@ export const useTemplateStore = create<TemplateStore>()((set, get) => ({
       id: row.id,
       name: row.name,
       movements: row.movements ?? [],
+      accessories: row.accessories ?? [],
       createdAt: row.created_at,
     }));
 
@@ -35,7 +36,7 @@ export const useTemplateStore = create<TemplateStore>()((set, get) => ({
 
   clearTemplates: () => set({ templates: [] }),
 
-  addTemplate: async (name, movements) => {
+  addTemplate: async (name, movements, accessories = []) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -44,13 +45,14 @@ export const useTemplateStore = create<TemplateStore>()((set, get) => ({
       id: crypto.randomUUID(),
       name,
       movements,
+      accessories,
       createdAt: new Date().toISOString(),
     };
     set((state) => ({ templates: [...state.templates, optimistic] }));
 
     const { data, error } = await supabase
       .from('templates')
-      .insert({ user_id: user.id, name, movements })
+      .insert({ user_id: user.id, name, movements, accessories })
       .select()
       .single();
 
@@ -61,7 +63,7 @@ export const useTemplateStore = create<TemplateStore>()((set, get) => ({
     set((state) => ({
       templates: state.templates.map((t) =>
         t.id === optimistic.id
-          ? { id: data.id, name: data.name, movements: data.movements, createdAt: data.created_at }
+          ? { id: data.id, name: data.name, movements: data.movements, accessories: data.accessories ?? [], createdAt: data.created_at }
           : t
       ),
     }));
@@ -74,6 +76,7 @@ export const useTemplateStore = create<TemplateStore>()((set, get) => ({
     const payload: Record<string, unknown> = {};
     if (updates.name !== undefined) payload.name = updates.name;
     if (updates.movements !== undefined) payload.movements = updates.movements;
+    if (updates.accessories !== undefined) payload.accessories = updates.accessories;
 
     await supabase.from('templates').update(payload).eq('id', id).eq('user_id', user.id);
 

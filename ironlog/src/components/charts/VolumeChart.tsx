@@ -10,17 +10,33 @@ interface VolumeChartProps {
   onFilterChange: (range: FilterRange) => void;
   repRange: RepRange;
   onRepRangeChange: (range: RepRange) => void;
+  variation?: string;
 }
 
 const FILTERS: FilterRange[] = ['4w', '3m', '6m', '1y', 'all'];
 const REP_RANGES: RepRange[] = ['all', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
-export function VolumeChart({ movement, filterRange, onFilterChange, repRange, onRepRangeChange }: VolumeChartProps) {
-  const { labels, datasets } = useVolumeChartData(filterRange, repRange, movement);
+export function VolumeChart({ movement, filterRange, onFilterChange, repRange, onRepRangeChange, variation }: VolumeChartProps) {
+  const { labels, datasets } = useVolumeChartData(filterRange, repRange, movement, variation);
 
   const options = {
     ...baseChartOptions,
     animation: { duration: 400 },
+    plugins: {
+      ...baseChartOptions.plugins,
+      tooltip: {
+        ...baseChartOptions.plugins.tooltip,
+        callbacks: {
+          label: (ctx: { parsed: { y: number } }) => {
+            const val = ctx.parsed.y;
+            const varLabel = variation && variation !== 'all' && variation !== 'competition'
+              ? ` · ${variation.charAt(0).toUpperCase() + variation.slice(1)}`
+              : '';
+            return `${val}kg${varLabel}`;
+          },
+        },
+      },
+    },
     scales: {
       ...baseChartOptions.scales,
       x: { ...baseChartOptions.scales.x },

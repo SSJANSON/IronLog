@@ -45,6 +45,7 @@ export const baseChartOptions = {
       borderColor: '#D4D4D4',
       borderWidth: 1,
       padding: 10,
+      usePointStyle: true,
       titleFont: { family: 'Space Grotesk, system-ui, sans-serif', weight: 'bold' as const, size: 12 },
       bodyFont: { family: 'Space Grotesk, system-ui, sans-serif', size: 12 },
     },

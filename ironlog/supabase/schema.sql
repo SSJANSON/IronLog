@@ -19,6 +19,7 @@ create table public.templates (
   user_id     uuid not null references public.profiles(id) on delete cascade,
   name        text not null,
   movements   jsonb not null default '[]',
+  accessories jsonb not null default '[]',
   created_at  timestamptz not null default now()
 );
 

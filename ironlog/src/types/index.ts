@@ -10,6 +10,7 @@ export interface Set {
 
 export interface MovementLog {
   movement: string;
+  variation?: string;
   sets: Set[];
 }
 
@@ -27,9 +28,16 @@ export interface BackdownGroup {
   reps: number;
 }
 
+export const MOVEMENT_VARIATIONS: Record<string, string[]> = {
+  squat:    ['competition', 'pause', 'tempo'],
+  bench:    ['competition', 'tempo', 'spoto'],
+  deadlift: ['competition', 'pause', 'rdl'],
+};
+
 export interface TemplateMovement {
   id: string;
   name: string;
+  variation?: string;
   targetSets: number;
   targetReps: number;
   backdownSets?: number;
@@ -37,10 +45,18 @@ export interface TemplateMovement {
   backdownGroups?: BackdownGroup[];
 }
 
+export interface Accessory {
+  id: string;
+  name: string;
+  sets: number;
+  reps: number;
+}
+
 export interface WorkoutTemplate {
   id: string;
   name: string;
   movements: TemplateMovement[];
+  accessories?: Accessory[];
   createdAt: string;
 }
 

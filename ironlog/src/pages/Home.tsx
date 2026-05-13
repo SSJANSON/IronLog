@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { FriendCard } from '../components/social/FriendCard';
 import { useFeedStore } from '../store/useFeedStore';
 import { useFriendStore } from '../store/useFriendStore';
-import { getMovementLabel } from '../lib/prDetection';
+import { getMovementLabel, getMovementTabLabel } from '../lib/prDetection';
 import type { SearchResult } from '../store/useFriendStore';
 
 export function Home() {
@@ -151,14 +151,23 @@ export function Home() {
               </Card>
             ) : (
               feed.map((item) => {
+                const MAIN_LIFTS = ['squat', 'bench', 'deadlift'];
                 const activeMovements = item.movements.filter(
                   (log) => log && typeof log === 'object' && Array.isArray(log.sets) && log.sets.length > 0
                 );
+                const mainLogs = activeMovements.filter((log) => MAIN_LIFTS.includes(log.movement));
+                const accessoryLogs = activeMovements.filter((log) => !MAIN_LIFTS.includes(log.movement));
+                const hasAccessories = accessoryLogs.length > 0;
 
-                const currentTab = activeMovements.length > 0
-                  ? getActiveTab(item.id, activeMovements[0].movement)
+                const tabIds = [
+                  ...mainLogs.map((log) => log.movement),
+                  ...(hasAccessories ? ['accessories'] : []),
+                ];
+                const firstTab = tabIds[0] ?? null;
+                const currentTab = firstTab ? getActiveTab(item.id, firstTab) : null;
+                const currentMainLog = currentTab !== 'accessories'
+                  ? mainLogs.find((log) => log.movement === currentTab) ?? null
                   : null;
-                const currentLog = activeMovements.find((log) => log.movement === currentTab);
 
                 return (
                   <article key={item.id} className="social-card">
@@ -203,85 +212,132 @@ export function Home() {
                     )}
 
                     {/* Tabbed movement breakdown */}
-                    {activeMovements.length > 0 && currentLog && (
+                    {tabIds.length > 0 && (
                       <div className="social-card__tabs-section">
-                        {/* Tab bar */}
-                        {activeMovements.length > 1 && <div className="social-card__tabs">
-                          {activeMovements.map((log) => {
-                            const topSets = log.sets.filter((s) => !s.isBackdown);
-                            const best = topSets.length > 0
-                              ? topSets.reduce((b, s) => s.weight > b.weight ? s : b, topSets[0])
-                              : null;
-                            return (
-                              <button
-                                key={log.movement}
-                                className={`social-card__tab social-card__tab--${log.movement}${currentTab === log.movement ? ' social-card__tab--active' : ''}`}
-                                onClick={() => setTab(item.id, log.movement)}
-                              >
-                                <span className="social-card__tab-name">{getMovementLabel(log.movement)}</span>
-                                {best && (
-                                  <span className="social-card__tab-stat">{best.weight}kg×{best.reps}</span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>}
-
-                        {/* Active movement sets */}
-                        <div className={`social-card__set-panel social-card__set-panel--${currentLog.movement}`}>
-                          {/* Top sets */}
-                          {currentLog.sets.filter((s) => !s.isBackdown).length > 0 && (
-                            <table className="social-card__set-table">
-                              <thead>
-                                <tr>
-                                  <td>Weight</td>
-                                  <td>Reps</td>
-                                  <td>RPE</td>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {currentLog.sets.filter((s) => !s.isBackdown).map((s) => (
-                                  <tr key={s.id} className="social-card__set-row">
-                                    <td className="social-card__set-cell social-card__set-cell--weight">{s.weight}kg</td>
-                                    <td className="social-card__set-cell">{s.reps}</td>
-                                    <td className="social-card__set-cell">{s.rpe ?? '—'}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          )}
-
-                          {/* Backdowns */}
-                          {currentLog.sets.filter((s) => s.isBackdown).length > 0 && (() => {
-                            const bdKey = `${item.id}-${currentLog.movement}`;
-                            const bdExpanded = expandedBd.has(bdKey);
-                            const backdownSets = currentLog.sets.filter((s) => s.isBackdown);
-                            return (
-                              <>
-                                {bdExpanded && (
-                                  <table className="social-card__set-table social-card__set-table--backdown">
-                                    <thead>
-                                      <tr><td colSpan={3} className="social-card__bd-label">Backdown</td></tr>
-                                      <tr><td>Weight</td><td>Reps</td><td>RPE</td></tr>
-                                    </thead>
-                                    <tbody>
-                                      {backdownSets.map((s) => (
-                                        <tr key={s.id} className="social-card__set-row social-card__set-row--backdown">
-                                          <td className="social-card__set-cell">{s.weight}kg</td>
-                                          <td className="social-card__set-cell">{s.reps}</td>
-                                          <td className="social-card__set-cell">{s.rpe ?? '—'}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                )}
-                                <button className="feed-card__bd-toggle" onClick={() => toggleBd(bdKey)}>
-                                  {bdExpanded ? 'Hide backdowns' : `+${backdownSets.length} backdown${backdownSets.length > 1 ? 's' : ''}`}
+                        {/* Tab bar — only when >1 tab */}
+                        {tabIds.length > 1 && (
+                          <div className="social-card__tabs">
+                            {mainLogs.map((log) => {
+                              const topSets = log.sets.filter((s) => !s.isBackdown);
+                              const best = topSets.length > 0
+                                ? topSets.reduce((b, s) => s.weight > b.weight ? s : b, topSets[0])
+                                : null;
+                              return (
+                                <button
+                                  key={log.movement}
+                                  className={`social-card__tab social-card__tab--${log.movement}${currentTab === log.movement ? ' social-card__tab--active' : ''}`}
+                                  onClick={() => setTab(item.id, log.movement)}
+                                >
+                                  <span className="social-card__tab-name">
+                                    {log.variation && log.variation !== 'competition' ? `${log.variation} ${getMovementTabLabel(log.movement)}` : getMovementTabLabel(log.movement)}
+                                  </span>
+                                  {best && <span className="social-card__tab-stat">{best.weight}kg×{best.reps}</span>}
                                 </button>
-                              </>
-                            );
-                          })()}
-                        </div>
+                              );
+                            })}
+                            {hasAccessories && (
+                              <button
+                                className={`social-card__tab social-card__tab--accessories${currentTab === 'accessories' ? ' social-card__tab--active' : ''}`}
+                                onClick={() => setTab(item.id, 'accessories')}
+                              >
+                                <span className="social-card__tab-name">Accessories</span>
+                                <span className="social-card__tab-stat">({accessoryLogs.length})</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Main lift panel */}
+                        {currentTab !== 'accessories' && currentMainLog && (
+                          <div className={`social-card__set-panel social-card__set-panel--${currentMainLog.movement}`}>
+                            {currentMainLog.sets.filter((s) => !s.isBackdown).length > 0 && (
+                              <table className="social-card__set-table">
+                                <thead><tr><td>Weight</td><td>Reps</td><td>RPE</td></tr></thead>
+                                <tbody>
+                                  {currentMainLog.sets.filter((s) => !s.isBackdown).map((s) => (
+                                    <tr key={s.id} className="social-card__set-row">
+                                      <td className="social-card__set-cell social-card__set-cell--weight">{s.weight}kg</td>
+                                      <td className="social-card__set-cell">{s.reps}</td>
+                                      <td className="social-card__set-cell">{s.rpe ?? '—'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                            {currentMainLog.sets.filter((s) => s.isBackdown).length > 0 && (() => {
+                              const bdKey = `${item.id}-${currentMainLog.movement}`;
+                              const bdExpanded = expandedBd.has(bdKey);
+                              const backdownSets = currentMainLog.sets.filter((s) => s.isBackdown);
+                              return (
+                                <>
+                                  {bdExpanded && (
+                                    <table className="social-card__set-table social-card__set-table--backdown">
+                                      <thead>
+                                        <tr><td colSpan={3} className="social-card__bd-label">Backdown</td></tr>
+                                        <tr><td>Weight</td><td>Reps</td><td>RPE</td></tr>
+                                      </thead>
+                                      <tbody>
+                                        {backdownSets.map((s) => (
+                                          <tr key={s.id} className="social-card__set-row social-card__set-row--backdown">
+                                            <td className="social-card__set-cell">{s.weight}kg</td>
+                                            <td className="social-card__set-cell">{s.reps}</td>
+                                            <td className="social-card__set-cell">{s.rpe ?? '—'}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  )}
+                                  <button className="feed-card__bd-toggle" onClick={() => toggleBd(bdKey)}>
+                                    {bdExpanded ? 'Hide backdowns' : `+${backdownSets.length} backdown${backdownSets.length > 1 ? 's' : ''}`}
+                                  </button>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
+
+                        {/* Accessories panel */}
+                        {currentTab === 'accessories' && (
+                          <div className="social-card__set-panel social-card__accessories-panel">
+                            {accessoryLogs.map((log) => {
+                              const first = log.sets[0];
+                              const expandKey = `${item.id}-acc-${log.movement}`;
+                              const expanded = expandedBd.has(expandKey);
+                              return (
+                                <div key={log.movement} className="social-card__accessory-item">
+                                  <button
+                                    className="social-card__accessory-row"
+                                    onClick={() => toggleBd(expandKey)}
+                                  >
+                                    <span className="social-card__accessory-name">{log.movement}</span>
+                                    <div className="social-card__accessory-right">
+                                      <span className="social-card__accessory-stat">
+                                        {first ? `${first.weight}×${first.reps}` : '—'}
+                                      </span>
+                                      <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--color-text-disabled)' }}>
+                                        {expanded ? 'expand_less' : 'expand_more'}
+                                      </span>
+                                    </div>
+                                  </button>
+                                  {expanded && (
+                                    <div className="social-card__accessory-grid">
+                                      <div className="social-card__accessory-grid-header">
+                                        <span>Weight</span><span>Reps</span><span>RPE</span>
+                                      </div>
+                                      {log.sets.map((s) => (
+                                        <div key={s.id} className="social-card__accessory-grid-row">
+                                          <span>{s.weight}</span>
+                                          <span>{s.reps}</span>
+                                          <span>{s.rpe ?? '—'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
 

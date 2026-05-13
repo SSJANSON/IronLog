@@ -7,6 +7,8 @@ create table public.feed_items (
   session_id     uuid references public.sessions(id) on delete cascade,
   session_name   text,
   movement_count integer,
+  movements      jsonb not null default '[]',
+  prs            jsonb not null default '[]',
   movement       text,
   weight         numeric,
   reps           integer,

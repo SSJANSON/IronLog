@@ -12,6 +12,7 @@ interface TemplateCardProps {
 
 export function TemplateCard({ template, onEdit, onDelete, onStart }: TemplateCardProps) {
   const [activeTab, setActiveTab] = useState(template.movements[0]?.name ?? '');
+  const [showAccessories, setShowAccessories] = useState(false);
   const currentMovement = template.movements.find((m) => m.name === activeTab) ?? template.movements[0];
 
   return (
@@ -35,6 +36,7 @@ export function TemplateCard({ template, onEdit, onDelete, onStart }: TemplateCa
           {template.movements.length === 1 && currentMovement && (
             <div className={`social-card__set-panel social-card__set-panel--${currentMovement.name}`} style={{ paddingBottom: 0 }}>
               <span className={`feed-card__movement-name movement-${currentMovement.name}`} style={{ display: 'block', marginBottom: 'var(--space-1)', background: 'none', padding: 0, borderBottom: 'none' }}>
+                {currentMovement.variation && currentMovement.variation !== 'competition' && `${currentMovement.variation} `}
                 {getMovementLabel(currentMovement.name)}
               </span>
             </div>
@@ -47,7 +49,10 @@ export function TemplateCard({ template, onEdit, onDelete, onStart }: TemplateCa
                   className={`social-card__tab social-card__tab--${m.name}${activeTab === m.name ? ' social-card__tab--active' : ''}`}
                   onClick={() => setActiveTab(m.name)}
                 >
-                  <span className="social-card__tab-name">{getMovementLabel(m.name)}</span>
+                  <span className="social-card__tab-name">
+                    {m.variation && m.variation !== 'competition' && `${m.variation} `}
+                    {getMovementLabel(m.name)}
+                  </span>
                   <span className="social-card__tab-stat">{m.targetSets}×{m.targetReps}</span>
                 </button>
               ))}
@@ -84,6 +89,31 @@ export function TemplateCard({ template, onEdit, onDelete, onStart }: TemplateCa
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {/* Accessories */}
+      {template.accessories && template.accessories.length > 0 && (
+        <div className="tmpl-card-accessories">
+          <button
+            className="tmpl-card-accessories__toggle"
+            onClick={() => setShowAccessories((v) => !v)}
+          >
+            <span>Accessories ({template.accessories.length})</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+              {showAccessories ? 'expand_less' : 'expand_more'}
+            </span>
+          </button>
+          {showAccessories && (
+            <div className="tmpl-card-accessories__list">
+              {template.accessories.map((a) => (
+                <div key={a.id} className="tmpl-card-accessories__row">
+                  <span className="tmpl-card-accessories__name">{a.name}</span>
+                  <span className="tmpl-card-accessories__stat">{a.sets}×{a.reps}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
