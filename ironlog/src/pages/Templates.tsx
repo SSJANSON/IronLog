@@ -237,9 +237,10 @@ export function Templates() {
               const folderTemplates = templates.filter((t) => t.folderId === folder.id);
               return (
                 <div key={folder.id} className="folder-card">
+                  {/* Folder header */}
                   <div className="folder-card__header">
-                    <button className="folder-card__main" onClick={() => setCurrentFolderId(folder.id)}>
-                      <span className="material-symbols-outlined folder-card__icon">folder</span>
+                    <div className="folder-card__title-row">
+                      <span className="material-symbols-outlined folder-card__icon" style={{ fontVariationSettings: "'FILL' 1" }}>folder</span>
                       {renamingFolderId === folder.id ? (
                         <input
                           className="folder-card__rename-input"
@@ -248,13 +249,14 @@ export function Templates() {
                           onChange={(e) => setRenameValue(e.target.value)}
                           onBlur={commitRename}
                           onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingFolderId(null); }}
-                          onClick={(e) => e.stopPropagation()}
                         />
                       ) : (
                         <span className="folder-card__name">{folder.name}</span>
                       )}
-                      <span className="material-symbols-outlined folder-card__chevron">chevron_right</span>
-                    </button>
+                      {folderTemplates.length > 0 && (
+                        <span className="folder-card__count-badge">{folderTemplates.length} {folderTemplates.length === 1 ? 'routine' : 'routines'}</span>
+                      )}
+                    </div>
                     <div className="folder-card__actions">
                       <button className="tmpl-card-action-btn" onClick={() => handleRenameFolder(folder)}>
                         <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
@@ -271,6 +273,7 @@ export function Templates() {
                     </div>
                   </div>
 
+                  {/* Template items */}
                   {folderTemplates.length > 0 && (
                     <div className="folder-card__templates">
                       {folderTemplates.map((t) => {
@@ -279,12 +282,11 @@ export function Templates() {
                           <div key={t.id} className="folder-card__tmpl-item">
                             <span className="folder-card__tmpl-name">{t.name}</span>
                             {mainMovements.length > 0 && (
-                              <div className="folder-card__tmpl-movements">
+                              <div className="folder-card__tmpl-pills">
                                 {mainMovements.map((m) => (
-                                  <div key={m.name} className={`folder-card__tmpl-movement folder-card__tmpl-movement--${m.name}`}>
-                                    <span className="folder-card__tmpl-movement-label">{LIFT_LABELS[m.name]}</span>
-                                    <span className="folder-card__tmpl-movement-sets">{m.targetSets}×{m.targetReps}</span>
-                                  </div>
+                                  <span key={m.name} className="folder-card__tmpl-pill">
+                                    {m.name.charAt(0).toUpperCase() + m.name.slice(1)} {m.targetSets}×{m.targetReps}
+                                  </span>
                                 ))}
                               </div>
                             )}
@@ -293,6 +295,11 @@ export function Templates() {
                       })}
                     </div>
                   )}
+
+                  <button className="folder-card__open-btn" onClick={() => setCurrentFolderId(folder.id)}>
+                    Open Folder
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_forward</span>
+                  </button>
                 </div>
               );
             })}
