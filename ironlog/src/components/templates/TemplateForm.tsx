@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { TemplateMovement, WorkoutTemplate, Accessory } from '../../types';
 import { MOVEMENT_VARIATIONS } from '../../types';
-import { useCustomVariations } from '../../hooks/useCustomVariations';
 import { Button } from '../ui/Button';
 import { getMovementLabel } from '../../lib/prDetection';
 
@@ -23,6 +22,7 @@ interface FormMovement {
   id: string;
   name: string;
   variation: string;
+  customVariation: string;
   targetSets: string;
   targetReps: string;
   backdownGroups: BackdownGroupForm[];
@@ -50,10 +50,13 @@ function toFormMovement(m: TemplateMovement): FormMovement {
       reps: m.backdownReps ? String(m.backdownReps) : '',
     }];
   }
+  const predefined = MOVEMENT_VARIATIONS[m.name] ?? [];
+  const isCustom = !!m.variation && !predefined.includes(m.variation);
   return {
     id: m.id,
     name: m.name,
-    variation: m.variation ?? 'competition',
+    variation: isCustom ? 'custom' : (m.variation ?? 'competition'),
+    customVariation: isCustom ? m.variation : '',
     targetSets: String(m.targetSets),
     targetReps: String(m.targetReps),
     backdownGroups,
@@ -72,7 +75,6 @@ export function TemplateForm({ initial, onSubmit, onCancel }: TemplateFormProps)
   const [customName, setCustomName] = useState('');
   const [showAccessories, setShowAccessories] = useState((initial?.accessories?.length ?? 0) > 0);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const customVariations = useCustomVariations();
 
   // Movement handlers
   const handleAddMovement = () => {
@@ -86,14 +88,14 @@ export function TemplateForm({ initial, onSubmit, onCancel }: TemplateFormProps)
     if (!movName) return;
     setMovements((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), name: movName, variation: 'competition', targetSets: '', targetReps: '', backdownGroups: [] },
+      { id: crypto.randomUUID(), name: movName, variation: 'competition', customVariation: '', targetSets: '', targetReps: '', backdownGroups: [] },
     ]);
     if (addType === 'custom') setCustomName('');
   };
 
   const handleRemove = (id: string) => setMovements((prev) => prev.filter((m) => m.id !== id));
 
-  const handleField = (id: string, field: 'targetSets' | 'targetReps' | 'variation', value: string) =>
+  const handleField = (id: string, field: 'targetSets' | 'targetReps' | 'variation' | 'customVariation', value: string) =>
     setMovements((prev) => prev.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
 
   const handleAddBackdownGroup = (movId: string) =>
@@ -146,7 +148,7 @@ export function TemplateForm({ initial, onSubmit, onCancel }: TemplateFormProps)
       movements.map((m) => ({
         id: m.id,
         name: m.name,
-        variation: m.variation.trim() || 'competition',
+        variation: m.variation === 'custom' ? (m.customVariation.trim() || 'custom') : m.variation,
         targetSets: Math.max(1, parseInt(m.targetSets, 10) || 1),
         targetReps: Math.max(1, parseInt(m.targetReps, 10) || 1),
         backdownGroups: m.backdownGroups.length > 0
@@ -189,18 +191,25 @@ export function TemplateForm({ initial, onSubmit, onCancel }: TemplateFormProps)
             <div className="tmpl-card__header-right">
               {MOVEMENT_VARIATIONS[m.name] && (
                 <>
-                  <datalist id={`variation-opts-${m.id}`}>
-                    {[...MOVEMENT_VARIATIONS[m.name], ...(customVariations[m.name] ?? [])].map((v) => (
-                      <option key={v} value={v} />
-                    ))}
-                  </datalist>
-                  <input
+                  {m.variation === 'custom' && (
+                    <input
+                      className="tmpl-custom-variation-input"
+                      placeholder="Enter variation…"
+                      value={m.customVariation}
+                      onChange={(e) => handleField(m.id, 'customVariation', e.target.value)}
+                    />
+                  )}
+                  <select
                     className="tmpl-variation-select"
-                    list={`variation-opts-${m.id}`}
-                    placeholder="Variation…"
                     value={m.variation}
                     onChange={(e) => handleField(m.id, 'variation', e.target.value)}
-                  />
+                  >
+                    {MOVEMENT_VARIATIONS[m.name].map((v) => (
+                      <option key={v} value={v}>
+                        {v === 'custom' ? 'Custom…' : v.charAt(0).toUpperCase() + v.slice(1)}
+                      </option>
+                    ))}
+                  </select>
                 </>
               )}
               <button type="button" className="tmpl-card__remove" onClick={() => handleRemove(m.id)} aria-label="Remove">

@@ -6,12 +6,14 @@ import { Button } from '../components/ui/Button';
 import { FriendCard } from '../components/social/FriendCard';
 import { useFeedStore } from '../store/useFeedStore';
 import { useFriendStore } from '../store/useFriendStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { getMovementLabel, getMovementTabLabel } from '../lib/prDetection';
 import type { SearchResult } from '../store/useFriendStore';
 
 export function Home() {
   const { feed, loading: feedLoading, loadFeed } = useFeedStore();
   const { friends, loadFriends, searchUsers, sendFriendRequest, acceptFriendRequest, removeFriend } = useFriendStore();
+  const user = useAuthStore((s) => s.user);
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -33,8 +35,8 @@ export function Home() {
 
   useEffect(() => {
     loadFriends();
-    loadFeed();
-  }, []);
+    if (user?.id) loadFeed(user.id);
+  }, [user?.id]);
 
   useEffect(() => {
     if (searchOpen) inputRef.current?.focus();
@@ -68,9 +70,19 @@ export function Home() {
         title="IronLog"
         brand
         right={
-          <button className="header-search-btn" onClick={() => searchOpen ? handleCloseSearch() : setSearchOpen(true)} aria-label="Search users">
-            <span className="material-symbols-outlined">{searchOpen ? 'close' : 'search'}</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+            <button
+              className="header-search-btn"
+              onClick={() => user?.id && loadFeed(user.id, true)}
+              aria-label="Refresh feed"
+              disabled={feedLoading}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 22 }}>refresh</span>
+            </button>
+            <button className="header-search-btn" onClick={() => searchOpen ? handleCloseSearch() : setSearchOpen(true)} aria-label="Search users">
+              <span className="material-symbols-outlined">{searchOpen ? 'close' : 'search'}</span>
+            </button>
+          </div>
         }
       />
 
@@ -174,9 +186,13 @@ export function Home() {
                     {/* User header */}
                     <div className="social-card__header">
                       <div className="social-card__avatar">
-                        <span className="social-card__avatar-initials">
-                          {item.displayName[0]?.toUpperCase()}
-                        </span>
+                        {item.avatarUrl ? (
+                          <img className="social-card__avatar-img" src={item.avatarUrl} alt={item.displayName} />
+                        ) : (
+                          <span className="social-card__avatar-initials">
+                            {item.displayName[0]?.toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <div className="social-card__user-info">
                         <span className="social-card__display-name">{item.displayName}</span>
@@ -190,9 +206,8 @@ export function Home() {
                     <div className="social-card__activity">
                       <div className="social-card__activity-label">
                         <span className="material-symbols-outlined social-card__activity-icon">fitness_center</span>
-                        <span className="social-card__activity-type">Strength Session</span>
+                        <h3 className="social-card__session-name">{item.sessionName}</h3>
                       </div>
-                      <h3 className="social-card__session-name">{item.sessionName}</h3>
                     </div>
 
                     {/* PR banner */}

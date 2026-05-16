@@ -7,6 +7,7 @@ export interface FeedEntry {
   sessionId: string;
   username: string;
   displayName: string;
+  avatarUrl?: string;
   sessionName: string;
   movementCount: number;
   movements: MovementLog[];
@@ -52,7 +53,7 @@ export async function fetchFeed(): Promise<FeedEntry[]> {
   const userIds = [...new Set(data.map((item) => item.user_id))];
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, username, display_name')
+    .select('id, username, display_name, avatar_url')
     .in('id', userIds);
 
   if (profilesError) console.error('fetchFeed profiles error:', profilesError);
@@ -67,6 +68,7 @@ export async function fetchFeed(): Promise<FeedEntry[]> {
       sessionId: item.session_id ?? '',
       username: profile?.username ?? '',
       displayName: profile?.display_name ?? '',
+      avatarUrl: profile?.avatar_url ?? undefined,
       sessionName: item.session_name ?? '',
       movementCount: item.movement_count ?? 0,
       movements: (item.movements as MovementLog[]) ?? [],

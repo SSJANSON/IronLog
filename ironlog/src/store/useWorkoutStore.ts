@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { WorkoutSession, Set, TemplateMovement, Accessory, PRMap } from '../types';
 import { buildPRMap } from '../lib/prDetection';
 import { supabase } from '../lib/supabase';
@@ -6,6 +7,7 @@ import { useFeedStore } from './useFeedStore';
 
 interface WorkoutStore {
   sessions: WorkoutSession[];
+  cachedUserId: string | null;
   activeSession: WorkoutSession | null;
   prs: PRMap;
   loadUserSessions: (userId: string) => Promise<void>;
@@ -23,18 +25,27 @@ interface WorkoutStore {
 }
 
 const DRAFT_KEY = 'ironlog-session-draft';
+const THREE_MONTHS_MS = 90 * 24 * 60 * 60 * 1000;
 
-export const useWorkoutStore = create<WorkoutStore>()((set, get) => ({
+function threeMonthsCutoff() {
+  return new Date(Date.now() - THREE_MONTHS_MS).toISOString().split('T')[0];
+}
+
+export const useWorkoutStore = create<WorkoutStore>()(persist((set, get) => ({
   sessions: [],
+  cachedUserId: null,
   activeSession: null,
   prs: { squat: null, bench: null, deadlift: null },
 
   loadUserSessions: async (userId) => {
+    if (get().cachedUserId !== userId) set({ sessions: [], cachedUserId: null });
+
     const { data, error } = await supabase
       .from('sessions')
       .select('*')
       .eq('user_id', userId)
       .eq('completed', true)
+      .gte('date', threeMonthsCutoff())
       .order('date', { ascending: false });
 
     if (error || !data) return;
@@ -48,11 +59,11 @@ export const useWorkoutStore = create<WorkoutStore>()((set, get) => ({
       movements: row.movements ?? [],
     }));
 
-    set({ sessions, prs: buildPRMap(sessions) });
+    set({ sessions, cachedUserId: userId, prs: buildPRMap(sessions) });
   },
 
   clearSessions: () => {
-    set({ sessions: [], activeSession: null, prs: { squat: null, bench: null, deadlift: null } });
+    set({ sessions: [], cachedUserId: null, activeSession: null, prs: { squat: null, bench: null, deadlift: null } });
   },
 
   startSession: (templateId, templateName, movements, accessories, date) => {
@@ -173,7 +184,14 @@ export const useWorkoutStore = create<WorkoutStore>()((set, get) => ({
     void supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
       await supabase.from('sessions').delete().eq('id', id).eq('user_id', user.id);
-      // feed_items rows cascade-delete automatically via FK constraint
     });
+  },
+}), {
+  name: 'ironlog-sessions',
+  partialize: (s) => ({ sessions: s.sessions, cachedUserId: s.cachedUserId }),
+  onRehydrateStorage: () => (state) => {
+    if (state?.sessions?.length) {
+      state.prs = buildPRMap(state.sessions);
+    }
   },
 }));

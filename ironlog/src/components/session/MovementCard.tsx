@@ -177,7 +177,7 @@ export const MovementCard = forwardRef<MovementCardHandle, MovementCardProps>(fu
               onClick={() => handleRemovePending(isBackdown)(row.id)}
               aria-label="Remove row"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>remove</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
             </button>
           </div>
         ))}

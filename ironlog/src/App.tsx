@@ -14,6 +14,7 @@ import { useAuthStore } from './store/useAuthStore';
 import { supabase } from './lib/supabase';
 import { useWorkoutStore } from './store/useWorkoutStore';
 import { useTemplateStore } from './store/useTemplateStore';
+import { useFolderStore } from './store/useFolderStore';
 import { useFriendStore } from './store/useFriendStore';
 import { useProfileStore } from './store/useProfileStore';
 
@@ -21,6 +22,7 @@ export default function App() {
   const { user, loading, init } = useAuthStore();
   const { loadUserSessions, clearSessions } = useWorkoutStore();
   const { loadUserTemplates, clearTemplates } = useTemplateStore();
+  const { loadFolders, clearFolders } = useFolderStore();
   const { loadFriends, clearFriends } = useFriendStore();
   const { loadProfile, clearProfile } = useProfileStore();
 
@@ -41,11 +43,13 @@ export default function App() {
         loadProfile(user.id);
         loadUserSessions(user.id);
         loadUserTemplates(user.id);
+        loadFolders();
         loadFriends();
       });
     } else {
       clearSessions();
       clearTemplates();
+      clearFolders();
       clearFriends();
       clearProfile();
     }

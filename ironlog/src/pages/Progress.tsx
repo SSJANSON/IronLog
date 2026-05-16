@@ -56,7 +56,7 @@ export function Progress() {
             All
           </button>
           {[
-            ...MOVEMENT_VARIATIONS[selectedMovement],
+            ...MOVEMENT_VARIATIONS[selectedMovement].filter((v) => v !== 'custom'),
             ...(customVariations[selectedMovement] ?? []),
           ].map((v) => (
             <button

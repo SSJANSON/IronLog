@@ -8,9 +8,10 @@ interface TemplateCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onStart: () => void;
+  onMove?: () => void;
 }
 
-export function TemplateCard({ template, onEdit, onDelete, onStart }: TemplateCardProps) {
+export function TemplateCard({ template, onEdit, onDelete, onStart, onMove }: TemplateCardProps) {
   const [activeTab, setActiveTab] = useState(template.movements[0]?.name ?? '');
   const [showAccessories, setShowAccessories] = useState(false);
   const currentMovement = template.movements.find((m) => m.name === activeTab) ?? template.movements[0];
@@ -19,13 +20,8 @@ export function TemplateCard({ template, onEdit, onDelete, onStart }: TemplateCa
     <article className="social-card">
       {/* Header */}
       <div className="social-card__header">
-        <div className="social-card__avatar">
-          <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--color-text-disabled)' }}>
-            fitness_center
-          </span>
-        </div>
         <div className="social-card__user-info">
-          <span className="social-card__display-name">{template.name}</span>
+          <span className="tmpl-card__title">{template.name}</span>
           <span className="social-card__time">{template.movements.length} movement{template.movements.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
@@ -123,11 +119,20 @@ export function TemplateCard({ template, onEdit, onDelete, onStart }: TemplateCa
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
           Edit
         </button>
+        {onMove && (
+          <button className="tmpl-card-action-btn" onClick={onMove}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>drive_file_move</span>
+            Move
+          </button>
+        )}
         <button className="tmpl-card-action-btn tmpl-card-action-btn--danger" onClick={onDelete}>
           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
           Delete
         </button>
-        <Button variant="primary" size="sm" onClick={onStart}>Start</Button>
+        <Button variant="primary" size="sm" onClick={onStart}>
+          Start
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>play_arrow</span>
+        </Button>
       </div>
     </article>
   );

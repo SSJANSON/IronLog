@@ -29,9 +29,9 @@ export interface BackdownGroup {
 }
 
 export const MOVEMENT_VARIATIONS: Record<string, string[]> = {
-  squat:    ['competition', 'pause', 'tempo'],
-  bench:    ['competition', 'tempo', 'spoto'],
-  deadlift: ['competition', 'pause', 'rdl'],
+  squat:    ['competition', 'pause', 'tempo', 'custom'],
+  bench:    ['competition', 'tempo', 'spoto', 'custom'],
+  deadlift: ['competition', 'pause', 'rdl', 'custom'],
 };
 
 export interface TemplateMovement {
@@ -57,6 +57,14 @@ export interface WorkoutTemplate {
   name: string;
   movements: TemplateMovement[];
   accessories?: Accessory[];
+  folderId?: string | null;
+  createdAt: string;
+}
+
+export interface TemplateFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
   createdAt: string;
 }
 
